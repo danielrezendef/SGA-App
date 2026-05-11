@@ -431,7 +431,7 @@ const cobrancasRouter = router({
       if (existing) throw new TRPCError({ code: "CONFLICT", message: "Cobrança já cadastrada para este agendamento." });
 
       const usuario = await getUserById(ctx.user.id);
-      const gerarContratoAutomaticamente = (usuario?.gerarContratoAutomaticamente ?? 0) === 1;
+      const gerarContratoAutomaticamente = Boolean(usuario?.gerarContratoAutomaticamente);
       const cobranca = await createCobranca(input as any, gerarContratoAutomaticamente ? "confirmado" : "pagamento");
 
       if (gerarContratoAutomaticamente) {
