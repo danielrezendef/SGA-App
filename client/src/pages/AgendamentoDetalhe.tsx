@@ -55,6 +55,31 @@ const FORMA_PAGAMENTO_LABELS: Record<string, string> = {
   boleto: "Boleto",
 };
 
+const STATUS_VALUES = ["orcamento", "confirmado", "pagamento", "concluido"] as const;
+type AgendamentoStatus = (typeof STATUS_VALUES)[number];
+
+function isAgendamentoStatus(status: string): status is AgendamentoStatus {
+  return STATUS_VALUES.includes(status as AgendamentoStatus);
+}
+
+type CobrancaEndereco = {
+  rua?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  enderecoCompleto?: string | null;
+  endereco?: string | null;
+};
+
+function formatCobrancaEndereco(cobranca: CobrancaEndereco | null | undefined) {
+  if (!cobranca) return "-";
+  if (!cobranca.rua) return cobranca.enderecoCompleto || cobranca.endereco || "-";
+  return `${cobranca.rua}, ${cobranca.numero}${cobranca.complemento ? ` - ${cobranca.complemento}` : ""}, ${cobranca.bairro}, ${cobranca.cidade} - ${cobranca.estado}${cobranca.cep ? `, CEP: ${cobranca.cep}` : ""}`;
+}
+
 export default function AgendamentoDetalhe() {
   const params = useParams<{ id: string }>();
   const id = Number.parseInt(params.id ?? "", 10);
@@ -69,14 +94,38 @@ export default function AgendamentoDetalhe() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const updateStatusMutation = trpc.agendamentos.updateStatus.useMutation({
-    onSuccess: () => {
-      toast.success("Status atualizado com sucesso!");
-      utils.agendamentos.byId.invalidate({ id });
-      utils.dashboard.stats.invalidate();
-      setIsChangingStatus(false);
+    onMutate: async ({ status }) => {
+      setIsChangingStatus(true);
+      await utils.agendamentos.byId.cancel({ id });
+      const previousAgendamento = utils.agendamentos.byId.getData({ id });
+
+      utils.agendamentos.byId.setData({ id }, (current) => {
+        if (!current) return current;
+        return { ...current, status };
+      });
+
+      return { previousAgendamento };
     },
-    onError: (err: any) => {
+    onSuccess: (updatedAgendamento) => {
+      if (updatedAgendamento) {
+        utils.agendamentos.byId.setData({ id }, (current) => {
+          if (!current) return current;
+          return { ...current, ...updatedAgendamento, cobranca: current.cobranca };
+        });
+      }
+
+      toast.success("Status atualizado com sucesso!");
+      utils.agendamentos.list.invalidate();
+      utils.dashboard.stats.invalidate();
+    },
+    onError: (err: any, _variables, context) => {
+      if (context?.previousAgendamento) {
+        utils.agendamentos.byId.setData({ id }, context.previousAgendamento);
+      }
       toast.error(err?.message || "Erro ao atualizar status");
+    },
+    onSettled: () => {
+      utils.agendamentos.byId.invalidate({ id });
       setIsChangingStatus(false);
     },
   });
@@ -118,8 +167,8 @@ export default function AgendamentoDetalhe() {
   const canUseContracts = Boolean(user?.gerarContratoAutomaticamente);
 
   const handleStatusChange = (newStatus: string) => {
-    setIsChangingStatus(true);
-    updateStatusMutation.mutate({ id, status: newStatus as any });
+    if (!isAgendamentoStatus(newStatus) || newStatus === data.status || isChangingStatus) return;
+    updateStatusMutation.mutate({ id, status: newStatus });
   };
 
   const handleDownloadPDF = async () => {
@@ -171,8 +220,8 @@ export default function AgendamentoDetalhe() {
       URL.revokeObjectURL(url);
       toast.success("PDF gerado com sucesso!");
       
-      // Atualizar status para "pagamento" quando emitir PDF
-      if (data.status !== "pagamento") {
+      // Atualizar status para "pagamento" quando emitir PDF, sem rebaixar agendamentos já concluídos.
+      if (data.status !== "pagamento" && data.status !== "concluido") {
         updateStatusMutation.mutate({ id, status: "pagamento" });
       }
     } catch (error) {
@@ -295,7 +344,7 @@ export default function AgendamentoDetalhe() {
                     <InfoItem 
                       icon={<MapPin className="w-4 h-4" />} 
                       label="Endereço" 
-                      value={cobranca.rua ? `${cobranca.rua}, ${cobranca.numero}${cobranca.complemento ? ` - ${cobranca.complemento}` : ""}, ${cobranca.bairro}, ${cobranca.cidade} - ${cobranca.estado}${cobranca.cep ? `, CEP: ${cobranca.cep}` : ""}` : (cobranca.enderecoCompleto || cobranca.endereco || "-")} 
+                      value={formatCobrancaEndereco(cobranca)} 
                     />
                   <div className="pt-3 border-t border-border/50">
                     <Button 

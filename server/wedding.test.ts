@@ -20,10 +20,15 @@ vi.mock("./db", () => ({
   getCobrancaByAgendamentoId: vi.fn(),
   createCobranca: vi.fn(),
   updateCobranca: vi.fn(),
+  createContrato: vi.fn(),
   getDashboardStats: vi.fn(),
 }));
 
 import * as db from "./db";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 // ─── Context helpers ──────────────────────────────────────────────────────────
 function makeCtx(user?: Partial<TrpcContext["user"]>): TrpcContext {
@@ -119,8 +124,7 @@ describe("agendamentos.list", () => {
         {
           id: 1,
           userId: 1,
-          nomeNoiva: "Ana",
-          nomeNoivo: "João",
+          descricao: "Casamento Ana e João",
           dataEvento: new Date("2026-06-15"),
           horario: "16:00:00",
           enderecoCerimonia: "Igreja São Paulo",
@@ -137,7 +141,7 @@ describe("agendamentos.list", () => {
     const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
     const result = await caller.agendamentos.list({});
     expect(result.items).toHaveLength(1);
-    expect(result.items[0].nomeNoiva).toBe("Ana");
+    expect(result.items[0].descricao).toBe("Casamento Ana e João");
     expect(result.total).toBe(1);
   });
 
@@ -152,8 +156,7 @@ describe("agendamentos.create", () => {
     const mockAg = {
       id: 1,
       userId: 1,
-      nomeNoiva: "Carla",
-      nomeNoivo: "Pedro",
+      descricao: "Casamento Carla e Pedro",
       dataEvento: new Date("2026-08-20"),
       horario: "17:00:00",
       enderecoCerimonia: "Fazenda Boa Vista",
@@ -167,8 +170,7 @@ describe("agendamentos.create", () => {
 
     const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
     const result = await caller.agendamentos.create({
-      nomeNoiva: "Carla",
-      nomeNoivo: "Pedro",
+      descricao: "Casamento Carla e Pedro",
       dataEvento: "2026-08-20",
       horario: "17:00",
       enderecoCerimonia: "Fazenda Boa Vista",
@@ -176,7 +178,7 @@ describe("agendamentos.create", () => {
     });
 
     expect(result?.status).toBe("orcamento");
-    expect(result?.nomeNoiva).toBe("Carla");
+    expect(result?.descricao).toBe("Casamento Carla e Pedro");
   });
 });
 
@@ -185,8 +187,7 @@ describe("agendamentos.delete", () => {
     vi.mocked(db.getAgendamentoById).mockResolvedValue({
       id: 1,
       userId: 2,
-      nomeNoiva: "Test",
-      nomeNoivo: "Test",
+      descricao: "Test",
       dataEvento: new Date(),
       horario: "10:00:00",
       enderecoCerimonia: "Test",
@@ -209,14 +210,50 @@ describe("agendamentos.delete", () => {
   });
 });
 
+describe("agendamentos.updateStatus", () => {
+  it("allows admin to mark agendamento as concluido", async () => {
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({
+      id: 1,
+      userId: 2,
+      descricao: "Casamento concluído",
+      dataEvento: new Date(),
+      horario: "10:00:00",
+      enderecoCerimonia: "Igreja",
+      valorServico: "1000.00",
+      status: "pagamento",
+      observacoes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.updateAgendamento).mockResolvedValue({
+      id: 1,
+      userId: 2,
+      descricao: "Casamento concluído",
+      dataEvento: new Date(),
+      horario: "10:00:00",
+      enderecoCerimonia: "Igreja",
+      valorServico: "1000.00",
+      status: "concluido",
+      observacoes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "admin" }));
+    const result = await caller.agendamentos.updateStatus({ id: 1, status: "concluido" });
+
+    expect(db.updateAgendamento).toHaveBeenCalledWith(1, { status: "concluido" });
+    expect(result?.status).toBe("concluido");
+  });
+});
+
 // ─── Cobranças tests ──────────────────────────────────────────────────────────
 describe("cobrancas.create", () => {
-  it("creates cobranca and updates status to confirmado", async () => {
+  it("creates cobranca and updates status to pagamento when automatic contract is disabled", async () => {
     vi.mocked(db.getAgendamentoById).mockResolvedValue({
       id: 1,
       userId: 1,
-      nomeNoiva: "Ana",
-      nomeNoivo: "João",
+      descricao: "Casamento Ana e João",
       dataEvento: new Date(),
       horario: "16:00:00",
       enderecoCerimonia: "Igreja",
@@ -232,7 +269,13 @@ describe("cobrancas.create", () => {
       agendamentoId: 1,
       nomeResponsavel: "João Silva",
       cpf: "123.456.789-00",
-      enderecoCompleto: "Rua A, 123",
+      cep: "35680-000",
+      rua: "Rua A",
+      numero: "123",
+      complemento: null,
+      bairro: "Centro",
+      cidade: "Itaúna",
+      estado: "MG",
       valor: "5000.00",
       condicaoPagamento: "50% entrada",
       formaPagamento: "pix",
@@ -245,7 +288,12 @@ describe("cobrancas.create", () => {
       agendamentoId: 1,
       nomeResponsavel: "João Silva",
       cpf: "123.456.789-00",
-      enderecoCompleto: "Rua A, 123",
+      cep: "35680-000",
+      rua: "Rua A",
+      numero: "123",
+      bairro: "Centro",
+      cidade: "Itaúna",
+      estado: "MG",
       valor: "5000.00",
       condicaoPagamento: "50% entrada",
       formaPagamento: "pix",
@@ -253,7 +301,8 @@ describe("cobrancas.create", () => {
 
     expect(result?.nomeResponsavel).toBe("João Silva");
     expect(db.createCobranca).toHaveBeenCalledWith(
-      expect.objectContaining({ agendamentoId: 1, formaPagamento: "pix" })
+      expect.objectContaining({ agendamentoId: 1, formaPagamento: "pix" }),
+      "pagamento"
     );
   });
 });
