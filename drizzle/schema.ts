@@ -24,6 +24,8 @@ export const users = mysqlTable("users", {
   gerarContratoAutomaticamente: boolean("gerar_contrato_automaticamente").notNull().default(false),
   googleCalendarRefreshToken: text("google_calendar_refresh_token"),
   googleCalendarConnectedAt: timestamp("google_calendar_connected_at"),
+  googleCalendarId: varchar("google_calendar_id", { length: 1024 }),
+  googleCalendarName: varchar("google_calendar_name", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -105,5 +107,4 @@ export const contratos = mysqlTable("contratos", {
 
 export type Contrato = typeof contratos.$inferSelect;
 export type InsertContrato = typeof contratos.$inferInsert;
-
 

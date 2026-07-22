@@ -42,6 +42,8 @@ import {
   createGoogleCalendarAuthorizationUrl,
   disconnectGoogleCalendar,
   isGoogleCalendarConfigured,
+  listGoogleCalendars,
+  selectGoogleCalendar,
   syncAgendamentoToGoogleCalendar,
 } from "./googleCalendar";
 
@@ -538,8 +540,20 @@ const googleCalendarRouter = router({
       configured: isGoogleCalendarConfigured(),
       connected: Boolean(user?.googleCalendarRefreshToken),
       connectedAt: user?.googleCalendarConnectedAt ?? null,
+      calendarId: user?.googleCalendarId ?? "primary",
+      calendarName: user?.googleCalendarName ?? "Agenda principal",
     };
   }),
+
+  calendars: protectedProcedure.query(async ({ ctx }) => {
+    return listGoogleCalendars(ctx.user.id);
+  }),
+
+  selectCalendar: protectedProcedure
+    .input(z.object({ calendarId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      return selectGoogleCalendar(ctx.user.id, input.calendarId);
+    }),
 
   authorizationUrl: protectedProcedure.mutation(async ({ ctx }) => {
     const forwardedProto = ctx.req.get("x-forwarded-proto")?.split(",")[0]?.trim();
@@ -626,11 +640,12 @@ const contratosRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const contrato = await getContratoById(input.id);
-      if (!contrato) throw new Error("Contrato não encontrado");
-      if (contrato.userId !== ctx.user.id) throw new Error("Não autorizado");
+      const contrato = await getContratoById(ctx.user.id, input.id);
+      if (!contrato) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Contrato não encontrado" });
+      }
 
-      return await updateContrato(input.id, {
+      return await updateContrato(ctx.user.id, input.id, {
         nomeCompleto: input.nomeCompleto ?? contrato.nomeCompleto,
         cpf: input.cpf ?? contrato.cpf,
         cep: input.cep ?? contrato.cep,
@@ -646,25 +661,22 @@ const contratosRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const contrato = await getContratoById(input.id);
-      if (!contrato) throw new Error("Contrato não encontrado");
-      if (contrato.userId !== ctx.user.id) throw new Error("Não autorizado");
+      const contrato = await getContratoById(ctx.user.id, input.id);
+      if (!contrato) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Contrato não encontrado" });
+      }
       
-      await deleteContrato(input.id);
+      await deleteContrato(ctx.user.id, input.id);
       return { success: true };
     }),
 
   setDefault: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const contrato = await getContratoById(input.id);
+      const contrato = await getContratoById(ctx.user.id, input.id);
       if (!contrato) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Contrato não encontrado" });
       }
-      if (contrato.userId !== ctx.user.id) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Não autorizado" });
-      }
-
       return await setDefaultContrato(ctx.user.id, input.id);
     }),
 });

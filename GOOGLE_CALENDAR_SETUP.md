@@ -7,7 +7,9 @@ Cada usuário do SGA App pode conectar sua própria conta Google em **Meu Perfil
 1. Crie ou selecione um projeto no [Google Cloud Console](https://console.cloud.google.com/).
 2. Ative a **Google Calendar API**.
 3. Configure a tela de consentimento OAuth.
-4. Adicione o escopo `https://www.googleapis.com/auth/calendar.events`.
+4. Adicione os escopos:
+   - `https://www.googleapis.com/auth/calendar.events`
+   - `https://www.googleapis.com/auth/calendar.calendarlist.readonly`
    Enquanto o aplicativo estiver em modo de teste, cadastre como usuários de teste as contas Google que poderão conectar suas agendas.
 5. Crie uma credencial **OAuth 2.0 Client ID** do tipo **Web application**.
 6. Cadastre as URIs de redirecionamento:
@@ -30,7 +32,8 @@ Em desenvolvimento, ajuste `GOOGLE_CALENDAR_REDIRECT_URI` e `APP_URL` para `http
 
 ## Comportamento
 
-- O evento é criado na agenda `primary` do usuário.
+- O usuário escolhe em **Meu Perfil > Google Agenda** em qual agenda gravar os eventos.
+- Apenas agendas com permissão de escrita são exibidas; enquanto nenhuma for escolhida, a agenda principal é usada.
 - O horário usa o fuso `America/Sao_Paulo`.
 - A duração inicial é de duas horas.
 - Repetir a sincronização atualiza o mesmo evento em vez de duplicá-lo.

@@ -184,6 +184,22 @@ export async function saveGoogleCalendarConnection(
     .where(eq(users.id, userId));
 }
 
+export async function saveGoogleCalendarSelection(
+  userId: number,
+  calendarId: string,
+  calendarName: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({
+      googleCalendarId: calendarId,
+      googleCalendarName: calendarName,
+    })
+    .where(eq(users.id, userId));
+}
+
 export async function removeGoogleCalendarConnection(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -192,6 +208,8 @@ export async function removeGoogleCalendarConnection(userId: number) {
     .set({
       googleCalendarRefreshToken: null,
       googleCalendarConnectedAt: null,
+      googleCalendarId: null,
+      googleCalendarName: null,
     })
     .where(eq(users.id, userId));
 }
@@ -511,15 +529,15 @@ export async function getDashboardStats(userId?: number) {
 }
 
 // ─── Contratos ────────────────────────────────────────────────────────────────
-export async function listContratos(userId?: number) {
+export async function listContratos(userId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  const query = userId
-    ? db.select().from(contratos).where(eq(contratos.userId, userId)).orderBy(desc(contratos.createdAt))
-    : db.select().from(contratos).orderBy(desc(contratos.createdAt));
-
-  return query;
+  return db
+    .select()
+    .from(contratos)
+    .where(eq(contratos.userId, userId))
+    .orderBy(desc(contratos.createdAt));
 }
 
 export async function getLatestContratoByUserId(userId: number): Promise<Contrato | undefined> {
@@ -536,11 +554,15 @@ export async function getLatestContratoByUserId(userId: number): Promise<Contrat
   return result[0];
 }
 
-export async function getContratoById(id: number): Promise<Contrato | undefined> {
+export async function getContratoById(userId: number, id: number): Promise<Contrato | undefined> {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(contratos).where(eq(contratos.id, id));
+  const result = await db
+    .select()
+    .from(contratos)
+    .where(and(eq(contratos.id, id), eq(contratos.userId, userId)))
+    .limit(1);
   return result[0];
 }
 
@@ -569,32 +591,42 @@ export async function createContrato(data: InsertContrato): Promise<Contrato> {
     return result[0].insertId as number;
   });
 
-  const created = await getContratoById(id);
+  const created = await getContratoById(data.userId, id);
   if (!created) throw new Error("Failed to create contrato");
   return created;
 }
 
 export async function updateContrato(
+  userId: number,
   id: number,
   data: Partial<InsertContrato>
 ): Promise<Contrato | undefined> {
   const db = await getDb();
   if (!db) return undefined;
 
-  await db.update(contratos).set(data).where(eq(contratos.id, id));
-  return getContratoById(id);
+  await db
+    .update(contratos)
+    .set(data)
+    .where(and(eq(contratos.id, id), eq(contratos.userId, userId)));
+  return getContratoById(userId, id);
 }
 
-export async function deleteContrato(id: number): Promise<void> {
+export async function deleteContrato(userId: number, id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
 
   await db.transaction(async (tx) => {
-    const current = await tx.select().from(contratos).where(eq(contratos.id, id)).limit(1);
+    const current = await tx
+      .select()
+      .from(contratos)
+      .where(and(eq(contratos.id, id), eq(contratos.userId, userId)))
+      .limit(1);
     const contrato = current[0];
     if (!contrato) return;
 
-    await tx.delete(contratos).where(eq(contratos.id, id));
+    await tx
+      .delete(contratos)
+      .where(and(eq(contratos.id, id), eq(contratos.userId, userId)));
 
     if (contrato.isDefault) {
       const replacement = await tx
@@ -629,5 +661,5 @@ export async function setDefaultContrato(userId: number, id: number): Promise<Co
       .where(and(eq(contratos.id, id), eq(contratos.userId, userId)));
   });
 
-  return getContratoById(id);
+  return getContratoById(userId, id);
 }

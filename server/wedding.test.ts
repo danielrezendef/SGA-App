@@ -21,10 +21,26 @@ vi.mock("./db", () => ({
   createCobranca: vi.fn(),
   updateCobranca: vi.fn(),
   createContrato: vi.fn(),
+  listContratos: vi.fn(),
+  getLatestContratoByUserId: vi.fn(),
+  getContratoById: vi.fn(),
+  updateContrato: vi.fn(),
+  deleteContrato: vi.fn(),
+  setDefaultContrato: vi.fn(),
   getDashboardStats: vi.fn(),
 }));
 
+vi.mock("./googleCalendar", () => ({
+  createGoogleCalendarAuthorizationUrl: vi.fn(),
+  disconnectGoogleCalendar: vi.fn(),
+  isGoogleCalendarConfigured: vi.fn(() => true),
+  listGoogleCalendars: vi.fn(),
+  selectGoogleCalendar: vi.fn(),
+  syncAgendamentoToGoogleCalendar: vi.fn(() => Promise.resolve({ status: "skipped" })),
+}));
+
 import * as db from "./db";
+import * as googleCalendar from "./googleCalendar";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -325,5 +341,56 @@ describe("dashboard.stats", () => {
     expect(result?.totalAno).toBe(10);
     expect(result?.totalMes).toBe(3);
     expect(result?.valorReceber).toBe(25000);
+  });
+});
+
+// ─── Contratos tests ─────────────────────────────────────────────────────────
+describe("contratos isolation", () => {
+  it("always lists contracts using the authenticated user id", async () => {
+    vi.mocked(db.listContratos).mockResolvedValue([]);
+
+    const caller = appRouter.createCaller(makeCtx({ id: 42, role: "user" }));
+    await caller.contratos.list();
+
+    expect(db.listContratos).toHaveBeenCalledWith(42);
+  });
+
+  it("does not update a contract that does not belong to the authenticated user", async () => {
+    vi.mocked(db.getContratoById).mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(makeCtx({ id: 42, role: "user" }));
+    await expect(
+      caller.contratos.update({ id: 99, nomeCompleto: "Outro usuário" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    expect(db.getContratoById).toHaveBeenCalledWith(42, 99);
+    expect(db.updateContrato).not.toHaveBeenCalled();
+  });
+});
+
+describe("googleCalendar selection", () => {
+  it("lists only the authenticated user's writable calendars", async () => {
+    vi.mocked(googleCalendar.listGoogleCalendars).mockResolvedValue([
+      { id: "agenda@test.com", name: "Agenda de eventos", primary: false },
+    ]);
+
+    const caller = appRouter.createCaller(makeCtx({ id: 42, role: "user" }));
+    const result = await caller.googleCalendar.calendars();
+
+    expect(googleCalendar.listGoogleCalendars).toHaveBeenCalledWith(42);
+    expect(result[0]?.name).toBe("Agenda de eventos");
+  });
+
+  it("saves the selected calendar for the authenticated user", async () => {
+    vi.mocked(googleCalendar.selectGoogleCalendar).mockResolvedValue({
+      id: "agenda@test.com",
+      name: "Agenda de eventos",
+      primary: false,
+    });
+
+    const caller = appRouter.createCaller(makeCtx({ id: 42, role: "user" }));
+    await caller.googleCalendar.selectCalendar({ calendarId: "agenda@test.com" });
+
+    expect(googleCalendar.selectGoogleCalendar).toHaveBeenCalledWith(42, "agenda@test.com");
   });
 });

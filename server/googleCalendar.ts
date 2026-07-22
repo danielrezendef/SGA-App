@@ -7,10 +7,14 @@ import {
   getUserById,
   removeGoogleCalendarConnection,
   saveGoogleCalendarConnection,
+  saveGoogleCalendarSelection,
   updateAgendamentoGoogleCalendarSync,
 } from "./db";
 
-const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+const CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+];
 const TIME_ZONE = "America/Sao_Paulo";
 const JWT_SECRET = process.env.JWT_SECRET ?? "wedding-secret-key";
 const STATE_SECRET = new TextEncoder().encode(JWT_SECRET);
@@ -55,7 +59,7 @@ export async function createGoogleCalendarAuthorizationUrl(userId: number, origi
     access_type: "offline",
     prompt: "consent",
     include_granted_scopes: true,
-    scope: [CALENDAR_SCOPE],
+    scope: CALENDAR_SCOPES,
     state,
   });
 }
@@ -134,15 +138,73 @@ function getEventId(agendamento: Agendamento) {
   return `sga${agendamento.userId.toString(32)}a${agendamento.id.toString(32)}`;
 }
 
+async function getGoogleCalendarAccessToken(encryptedRefreshToken: string) {
+  const redirectUri = getGoogleCalendarRedirectUri(process.env.APP_URL ?? "http://localhost:3000");
+  const client = createOAuthClient(redirectUri);
+  client.setCredentials({
+    refresh_token: decryptRefreshToken(encryptedRefreshToken),
+  });
+  const accessTokenResult = await client.getAccessToken();
+  const accessToken =
+    typeof accessTokenResult === "string" ? accessTokenResult : accessTokenResult?.token;
+  if (!accessToken) throw new Error("Não foi possível renovar o acesso ao Google Agenda.");
+  return accessToken;
+}
+
+export type GoogleCalendarOption = {
+  id: string;
+  name: string;
+  primary: boolean;
+};
+
+export async function listGoogleCalendars(userId: number): Promise<GoogleCalendarOption[]> {
+  const user = await getUserById(userId);
+  if (!user?.googleCalendarRefreshToken) return [];
+
+  const accessToken = await getGoogleCalendarAccessToken(user.googleCalendarRefreshToken);
+  const response = await fetch(
+    "https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=writer",
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!response.ok) {
+    const details = await response.text();
+    if (response.status === 403) {
+      throw new Error("Reconecte o Google Agenda para liberar a escolha da agenda.");
+    }
+    throw new Error(`Não foi possível listar as agendas do Google (${response.status}): ${details.slice(0, 200)}`);
+  }
+
+  const data = (await response.json()) as {
+    items?: Array<{ id?: string; summary?: string; summaryOverride?: string; primary?: boolean }>;
+  };
+  return (data.items ?? [])
+    .filter((item): item is typeof item & { id: string } => Boolean(item.id))
+    .map(item => ({
+      id: item.id,
+      name: item.summaryOverride || item.summary || item.id,
+      primary: Boolean(item.primary),
+    }))
+    .sort((a, b) => Number(b.primary) - Number(a.primary) || a.name.localeCompare(b.name, "pt-BR"));
+}
+
+export async function selectGoogleCalendar(userId: number, calendarId: string) {
+  const calendars = await listGoogleCalendars(userId);
+  const selected = calendars.find(calendar => calendar.id === calendarId);
+  if (!selected) throw new Error("Agenda não encontrada ou sem permissão de escrita.");
+  await saveGoogleCalendarSelection(userId, selected.id, selected.name);
+  return selected;
+}
+
 async function requestCalendarEvent(
   accessToken: string,
+  calendarId: string,
   eventId: string,
   event: Record<string, unknown>,
   method: "POST" | "PUT"
 ) {
   const suffix = method === "PUT" ? `/${encodeURIComponent(eventId)}` : "";
   return fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events${suffix}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events${suffix}`,
     {
       method,
       headers: {
@@ -162,15 +224,8 @@ export async function syncAgendamentoToGoogleCalendar(agendamento: Agendamento) 
 
   const eventId = agendamento.googleCalendarEventId ?? getEventId(agendamento);
   try {
-    const redirectUri = getGoogleCalendarRedirectUri(process.env.APP_URL ?? "http://localhost:3000");
-    const client = createOAuthClient(redirectUri);
-    client.setCredentials({
-      refresh_token: decryptRefreshToken(user.googleCalendarRefreshToken),
-    });
-    const accessTokenResult = await client.getAccessToken();
-    const accessToken =
-      typeof accessTokenResult === "string" ? accessTokenResult : accessTokenResult?.token;
-    if (!accessToken) throw new Error("Não foi possível renovar o acesso ao Google Agenda.");
+    const accessToken = await getGoogleCalendarAccessToken(user.googleCalendarRefreshToken);
+    const calendarId = user.googleCalendarId || "primary";
 
     const dateTimes = getEventDateTimes(agendamento);
     const event = {
@@ -192,9 +247,9 @@ export async function syncAgendamentoToGoogleCalendar(agendamento: Agendamento) 
       },
     };
 
-    let response = await requestCalendarEvent(accessToken, eventId, event, "POST");
+    let response = await requestCalendarEvent(accessToken, calendarId, eventId, event, "POST");
     if (response.status === 409) {
-      response = await requestCalendarEvent(accessToken, eventId, event, "PUT");
+      response = await requestCalendarEvent(accessToken, calendarId, eventId, event, "PUT");
     }
     if (!response.ok) {
       const details = await response.text();

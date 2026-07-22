@@ -9,6 +9,7 @@ import { Loader2, Upload, Mail, User, Lock, FileText, CalendarDays, CheckCircle2
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Perfil() {
   const { user, setUser } = useAppAuth();
@@ -29,10 +30,21 @@ export default function Perfil() {
   const changePasswordMutation = trpc.auth.changePassword.useMutation();
   const updateContratoAutomaticoMutation = trpc.auth.updateContratoAutomatico.useMutation();
   const calendarStatus = trpc.googleCalendar.status.useQuery();
+  const calendarList = trpc.googleCalendar.calendars.useQuery(undefined, {
+    enabled: Boolean(calendarStatus.data?.connected),
+  });
   const calendarAuthorizationMutation = trpc.googleCalendar.authorizationUrl.useMutation();
+  const calendarSelectionMutation = trpc.googleCalendar.selectCalendar.useMutation({
+    onSuccess: async selected => {
+      await calendarStatus.refetch();
+      toast.success(`Eventos serão gravados em “${selected.name}”.`);
+    },
+    onError: error => toast.error(error.message),
+  });
   const calendarDisconnectMutation = trpc.googleCalendar.disconnect.useMutation({
     onSuccess: async () => {
       await calendarStatus.refetch();
+      await calendarList.refetch();
       toast.success("Google Agenda desconectado.");
     },
     onError: error => toast.error(error.message),
@@ -41,6 +53,10 @@ export default function Perfil() {
   const [gerarContratoAutomaticamente, setGerarContratoAutomaticamente] = useState(
     Boolean(user?.gerarContratoAutomaticamente ?? false)
   );
+
+  const selectedCalendarId = calendarStatus.data?.calendarId === "primary"
+    ? calendarList.data?.find(calendar => calendar.primary)?.id
+    : calendarStatus.data?.calendarId;
 
   useEffect(() => {
     setGerarContratoAutomaticamente(Boolean(user?.gerarContratoAutomaticamente ?? false));
@@ -288,34 +304,74 @@ export default function Perfil() {
                 </div>
               </div>
             ) : calendarStatus.data.connected ? (
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 w-5 h-5 text-emerald-600" />
-                  <div>
-                    <p className="text-sm font-medium">Agenda conectada</p>
-                    <p className="text-sm text-muted-foreground">
-                      Novos eventos confirmados serão enviados para sua agenda principal.
+              <div className="space-y-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 w-5 h-5 text-emerald-600" />
+                    <div>
+                      <p className="text-sm font-medium">Google Agenda conectado</p>
+                      <p className="text-sm text-muted-foreground">
+                        Escolha abaixo em qual agenda os novos eventos serão gravados.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => calendarDisconnectMutation.mutate()}
+                    disabled={calendarDisconnectMutation.isPending}
+                  >
+                    {calendarDisconnectMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Unplug className="w-4 h-4 mr-2" />
+                    )}
+                    Desconectar
+                  </Button>
+                </div>
+
+                {calendarList.isLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Carregando agendas...
+                  </div>
+                ) : calendarList.error ? (
+                  <div className="flex flex-col gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      {calendarList.error.message}
+                    </p>
+                    <Button type="button" variant="outline" onClick={handleConnectGoogleCalendar}>
+                      Reconectar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="max-w-xl space-y-2">
+                    <Label htmlFor="google-calendar-selection">Agenda para sincronização</Label>
+                    <Select
+                      value={selectedCalendarId}
+                      onValueChange={calendarId => calendarSelectionMutation.mutate({ calendarId })}
+                      disabled={calendarSelectionMutation.isPending || !calendarList.data?.length}
+                    >
+                      <SelectTrigger id="google-calendar-selection">
+                        <SelectValue placeholder="Selecione uma agenda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {calendarList.data?.map(calendar => (
+                          <SelectItem key={calendar.id} value={calendar.id}>
+                            {calendar.name}{calendar.primary ? " (principal)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Apenas agendas em que você pode criar e editar eventos são exibidas.
                     </p>
                   </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => calendarDisconnectMutation.mutate()}
-                  disabled={calendarDisconnectMutation.isPending}
-                >
-                  {calendarDisconnectMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Unplug className="w-4 h-4 mr-2" />
-                  )}
-                  Desconectar
-                </Button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Autorize o SGA App a criar eventos na agenda principal da sua conta Google.
+                  Autorize o SGA App e depois escolha em qual agenda os eventos serão gravados.
                 </p>
                 <Button
                   type="button"
