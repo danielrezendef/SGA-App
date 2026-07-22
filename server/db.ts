@@ -169,6 +169,33 @@ export async function updateUserPassword(userId: number, passwordHash: string) {
   await db.update(users).set({ password: passwordHash }).where(eq(users.id, userId));
 }
 
+export async function saveGoogleCalendarConnection(
+  userId: number,
+  encryptedRefreshToken: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({
+      googleCalendarRefreshToken: encryptedRefreshToken,
+      googleCalendarConnectedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+}
+
+export async function removeGoogleCalendarConnection(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({
+      googleCalendarRefreshToken: null,
+      googleCalendarConnectedAt: null,
+    })
+    .where(eq(users.id, userId));
+}
+
 // ─── Agendamentos ─────────────────────────────────────────────────────────────
 export type AgendamentoFilters = {
   userId?: number;
@@ -183,6 +210,8 @@ export type AgendamentoFilters = {
 export async function listAgendamentos(filters: AgendamentoFilters = {}) {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
+
+  await completePastAgendamentos();
 
   const { page = 1, pageSize = 10 } = filters;
   const offset = (page - 1) * pageSize;
@@ -225,8 +254,38 @@ export async function listAgendamentos(filters: AgendamentoFilters = {}) {
 export async function getAgendamentoById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
+  await completePastAgendamentos();
   const result = await db.select().from(agendamentos).where(eq(agendamentos.id, id)).limit(1);
   return result[0];
+}
+
+/**
+ * Mantém como concluídos todos os eventos anteriores ao dia atual em São Paulo.
+ * Eventos marcados para hoje só serão concluídos a partir do dia seguinte.
+ */
+export async function completePastAgendamentos(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const datePart = (type: "year" | "month" | "day") =>
+    parts.find(part => part.type === type)?.value ?? "";
+  const today = `${datePart("year")}-${datePart("month")}-${datePart("day")}`;
+
+  await db
+    .update(agendamentos)
+    .set({ status: "concluido" })
+    .where(
+      and(
+        sql`${agendamentos.dataEvento} < ${today}`,
+        sql`${agendamentos.status} <> 'concluido'`
+      )
+    );
 }
 
 export async function createAgendamento(data: {
@@ -268,6 +327,26 @@ export async function updateAgendamento(
   if (!db) throw new Error("Database not available");
   await db.update(agendamentos).set(data as Parameters<typeof db.update>[0] extends never ? never : any).where(eq(agendamentos.id, id));
   return getAgendamentoById(id);
+}
+
+export async function updateAgendamentoGoogleCalendarSync(
+  id: number,
+  data: {
+    eventId?: string | null;
+    syncedAt?: Date | null;
+    error?: string | null;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(agendamentos)
+    .set({
+      googleCalendarEventId: data.eventId,
+      googleCalendarSyncedAt: data.syncedAt,
+      googleCalendarSyncError: data.error,
+    })
+    .where(eq(agendamentos.id, id));
 }
 
 export async function deleteAgendamento(id: number) {
@@ -316,6 +395,8 @@ export async function updateCobranca(
 export async function getDashboardStats(userId?: number) {
   const db = await getDb();
   if (!db) return null;
+
+  await completePastAgendamentos();
 
   const now = new Date();
   const year = now.getFullYear();
@@ -393,14 +474,15 @@ export async function getDashboardStats(userId?: number) {
       ),
   ]);
 
-  // Valor total Confirmado (todos os agendamentos não concluídos)
-  const valorConfirmados = await db
+  // A receber: agendamentos confirmados ou aguardando pagamento.
+  // Orçamentos e eventos já concluídos não entram neste total.
+  const valorAReceber = await db
     .select({ total: sql<string>`COALESCE(SUM(${agendamentos.valorServico}), 0)` })
     .from(agendamentos)
     .where(
       and(
         userCondition,
-        sql`${agendamentos.status} = 'pagamento'`
+        sql`${agendamentos.status} IN ('confirmado', 'pagamento')`
       )
     );
 
@@ -423,7 +505,7 @@ export async function getDashboardStats(userId?: number) {
     porStatus,
     proximosEventos,
     valorOrcamento: parseFloat(valorOrcamento[0]?.total ?? "0"),
-    valorConfirmado: parseFloat(valorConfirmados[0]?.total ?? "0"),
+    valorConfirmado: parseFloat(valorAReceber[0]?.total ?? "0"),
     porMes: porMesFormatted,
   };
 }
@@ -448,7 +530,7 @@ export async function getLatestContratoByUserId(userId: number): Promise<Contrat
     .select()
     .from(contratos)
     .where(eq(contratos.userId, userId))
-    .orderBy(desc(contratos.createdAt))
+    .orderBy(desc(contratos.isDefault), desc(contratos.createdAt))
     .limit(1);
 
   return result[0];
@@ -466,8 +548,26 @@ export async function createContrato(data: InsertContrato): Promise<Contrato> {
   const db = await getDb();
   if (!db) throw new Error("Database not connected");
 
-  const result = await db.insert(contratos).values(data);
-  const id = result[0].insertId as number;
+  const id = await db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: contratos.id })
+      .from(contratos)
+      .where(eq(contratos.userId, data.userId))
+      .limit(1);
+
+    const shouldBeDefault = data.isDefault === true || existing.length === 0;
+    if (shouldBeDefault && existing.length > 0) {
+      await tx
+        .update(contratos)
+        .set({ isDefault: false })
+        .where(eq(contratos.userId, data.userId));
+    }
+
+    const result = await tx
+      .insert(contratos)
+      .values({ ...data, isDefault: shouldBeDefault });
+    return result[0].insertId as number;
+  });
 
   const created = await getContratoById(id);
   if (!created) throw new Error("Failed to create contrato");
@@ -489,5 +589,45 @@ export async function deleteContrato(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
 
-  await db.delete(contratos).where(eq(contratos.id, id));
+  await db.transaction(async (tx) => {
+    const current = await tx.select().from(contratos).where(eq(contratos.id, id)).limit(1);
+    const contrato = current[0];
+    if (!contrato) return;
+
+    await tx.delete(contratos).where(eq(contratos.id, id));
+
+    if (contrato.isDefault) {
+      const replacement = await tx
+        .select({ id: contratos.id })
+        .from(contratos)
+        .where(eq(contratos.userId, contrato.userId))
+        .orderBy(desc(contratos.createdAt))
+        .limit(1);
+
+      if (replacement[0]) {
+        await tx
+          .update(contratos)
+          .set({ isDefault: true })
+          .where(eq(contratos.id, replacement[0].id));
+      }
+    }
+  });
+}
+
+export async function setDefaultContrato(userId: number, id: number): Promise<Contrato | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(contratos)
+      .set({ isDefault: false })
+      .where(eq(contratos.userId, userId));
+    await tx
+      .update(contratos)
+      .set({ isDefault: true })
+      .where(and(eq(contratos.id, id), eq(contratos.userId, userId)));
+  });
+
+  return getContratoById(id);
 }

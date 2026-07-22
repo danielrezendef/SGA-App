@@ -25,6 +25,7 @@ import {
   getUserById,
   listAgendamentos,
   listContratos,
+  setDefaultContrato,
   listUsers,
   updateAgendamento,
   updateCobranca,
@@ -37,6 +38,12 @@ import {
 import { ENV } from "./_core/env";
 import { storagePut } from "./storage";
 import { OAuth2Client } from "google-auth-library";
+import {
+  createGoogleCalendarAuthorizationUrl,
+  disconnectGoogleCalendar,
+  isGoogleCalendarConfigured,
+  syncAgendamentoToGoogleCalendar,
+} from "./googleCalendar";
 
 if (!globalThis.crypto) {
   globalThis.crypto = webcrypto as Crypto;
@@ -72,7 +79,18 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 // ─── Auth Router ──────────────────────────────────────────────────────────────
 const authRouter = router({
-  me: publicProcedure.query((opts) => opts.ctx.user),
+  me: publicProcedure.query(opts => {
+    const user = opts.ctx.user;
+    if (!user) return null;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      profilePhoto: user.profilePhoto,
+      role: user.role,
+      gerarContratoAutomaticamente: user.gerarContratoAutomaticamente,
+    };
+  }),
 
   register: publicProcedure
     .input(
@@ -355,10 +373,18 @@ const agendamentosRouter = router({
       if (ag.userId !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      return updateAgendamento(id, {
+      const updated = await updateAgendamento(id, {
         ...data,
         dataEvento: data.dataEvento, // Passa a string "YYYY-MM-DD" diretamente
       });
+      if (updated?.googleCalendarEventId) {
+        try {
+          await syncAgendamentoToGoogleCalendar(updated);
+        } catch (error) {
+          console.error("Erro ao atualizar evento no Google Agenda:", error);
+        }
+      }
+      return updated;
     }),
 
   updateStatus: adminProcedure
@@ -371,7 +397,15 @@ const agendamentosRouter = router({
     .mutation(async ({ input }) => {
       const ag = await getAgendamentoById(input.id);
       if (!ag) throw new TRPCError({ code: "NOT_FOUND" });
-      return updateAgendamento(input.id, { status: input.status });
+      const updated = await updateAgendamento(input.id, { status: input.status });
+      if (input.status === "confirmado" && updated) {
+        try {
+          await syncAgendamentoToGoogleCalendar(updated);
+        } catch (error) {
+          console.error("Erro ao sincronizar confirmação com Google Agenda:", error);
+        }
+      }
+      return updated;
     }),
 
   delete: protectedProcedure
@@ -449,7 +483,16 @@ const cobrancasRouter = router({
         });
       }
 
-      return cobranca;
+      let googleCalendarSync: "synced" | "skipped" | "failed" = "skipped";
+      try {
+        const syncResult = await syncAgendamentoToGoogleCalendar(ag);
+        googleCalendarSync = syncResult.status;
+      } catch (error) {
+        googleCalendarSync = "failed";
+        console.error("Erro ao sincronizar agendamento com Google Agenda:", error);
+      }
+
+      return cobranca ? { ...cobranca, googleCalendarSync } : cobranca;
     }),
 
   update: protectedProcedure
@@ -488,6 +531,31 @@ const dashboardRouter = router({
   }),
 });
 
+const googleCalendarRouter = router({
+  status: protectedProcedure.query(async ({ ctx }) => {
+    const user = await getUserById(ctx.user.id);
+    return {
+      configured: isGoogleCalendarConfigured(),
+      connected: Boolean(user?.googleCalendarRefreshToken),
+      connectedAt: user?.googleCalendarConnectedAt ?? null,
+    };
+  }),
+
+  authorizationUrl: protectedProcedure.mutation(async ({ ctx }) => {
+    const forwardedProto = ctx.req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const protocol = forwardedProto || ctx.req.protocol;
+    const origin = `${protocol}://${ctx.req.get("host")}`;
+    return {
+      url: await createGoogleCalendarAuthorizationUrl(ctx.user.id, origin),
+    };
+  }),
+
+  disconnect: protectedProcedure.mutation(async ({ ctx }) => {
+    await disconnectGoogleCalendar(ctx.user.id);
+    return { success: true };
+  }),
+});
+
 // ─── Users Router (Admin only) ────────────────────────────────────────────────
 const usersRouter = router({
   list: adminProcedure.query(() => listUsers()),
@@ -523,6 +591,7 @@ const contratosRouter = router({
   create: protectedProcedure
     .input(
       z.object({
+        isDefault: z.boolean().optional(),
         nomeCompleto: z.string().min(1, "Nome completo obrigatório"),
         cpf: z.string().min(1, "CPF obrigatório"),
         cep: z.string().optional(),
@@ -583,7 +652,21 @@ const contratosRouter = router({
       
       await deleteContrato(input.id);
       return { success: true };
-    })
+    }),
+
+  setDefault: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const contrato = await getContratoById(input.id);
+      if (!contrato) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Contrato não encontrado" });
+      }
+      if (contrato.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Não autorizado" });
+      }
+
+      return await setDefaultContrato(ctx.user.id, input.id);
+    }),
 });
 
 
@@ -595,6 +678,7 @@ export const appRouter = router({
   agendamentos: agendamentosRouter,
   cobrancas: cobrancasRouter,
   contratos: contratosRouter,
+  googleCalendar: googleCalendarRouter,
 
   dashboard: dashboardRouter,
   users: usersRouter,

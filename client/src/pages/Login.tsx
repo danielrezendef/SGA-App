@@ -48,6 +48,148 @@ const registerSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
 
+type Particle = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+};
+
+function InteractiveParticles() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = canvas?.parentElement;
+    if (!canvas || !container) return;
+
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    const particles: Particle[] = [];
+    const pointer = { x: 0, y: 0, active: false };
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let width = 0;
+    let height = 0;
+    let frameId = 0;
+
+    const createParticles = () => {
+      const desiredCount = Math.min(90, Math.max(38, Math.floor((width * height) / 11000)));
+
+      while (particles.length < desiredCount) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+          radius: Math.random() * 1.8 + 1,
+        });
+      }
+      particles.length = desiredCount;
+    };
+
+    const resize = () => {
+      const bounds = container.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      width = bounds.width;
+      height = bounds.height;
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      createParticles();
+    };
+
+    const updatePointer = (event: PointerEvent) => {
+      const bounds = container.getBoundingClientRect();
+      pointer.x = event.clientX - bounds.left;
+      pointer.y = event.clientY - bounds.top;
+      pointer.active = pointer.x >= 0 && pointer.x <= width && pointer.y >= 0 && pointer.y <= height;
+    };
+
+    const clearPointer = () => {
+      pointer.active = false;
+    };
+
+    const draw = () => {
+      context.clearRect(0, 0, width, height);
+
+      particles.forEach((particle, index) => {
+        if (!reduceMotion) {
+          if (pointer.active) {
+            const dx = particle.x - pointer.x;
+            const dy = particle.y - pointer.y;
+            const distance = Math.hypot(dx, dy);
+            const interactionRadius = 135;
+
+            if (distance > 0 && distance < interactionRadius) {
+              const force = (interactionRadius - distance) / interactionRadius;
+              particle.vx += (dx / distance) * force * 0.075;
+              particle.vy += (dy / distance) * force * 0.075;
+            }
+          }
+
+          particle.vx *= 0.992;
+          particle.vy *= 0.992;
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+
+          if (particle.x < -10) particle.x = width + 10;
+          if (particle.x > width + 10) particle.x = -10;
+          if (particle.y < -10) particle.y = height + 10;
+          if (particle.y > height + 10) particle.y = -10;
+        }
+
+        for (let otherIndex = index + 1; otherIndex < particles.length; otherIndex += 1) {
+          const other = particles[otherIndex];
+          const distance = Math.hypot(particle.x - other.x, particle.y - other.y);
+          if (distance < 105) {
+            context.beginPath();
+            context.moveTo(particle.x, particle.y);
+            context.lineTo(other.x, other.y);
+            context.strokeStyle = `rgba(251, 247, 239, ${(1 - distance / 105) * 0.22})`;
+            context.lineWidth = 0.7;
+            context.stroke();
+          }
+        }
+
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        context.fillStyle = "rgba(251, 247, 239, 0.72)";
+        context.fill();
+      });
+
+      if (pointer.active) {
+        const glow = context.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, 120);
+        glow.addColorStop(0, "rgba(229, 209, 163, 0.16)");
+        glow.addColorStop(1, "rgba(229, 209, 163, 0)");
+        context.fillStyle = glow;
+        context.fillRect(pointer.x - 120, pointer.y - 120, 240, 240);
+      }
+
+      if (!reduceMotion) frameId = window.requestAnimationFrame(draw);
+    };
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(container);
+    container.addEventListener("pointermove", updatePointer);
+    container.addEventListener("pointerleave", clearPointer);
+    resize();
+    draw();
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      container.removeEventListener("pointermove", updatePointer);
+      container.removeEventListener("pointerleave", clearPointer);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
+}
+
 export default function Login() {
   const [, navigate] = useLocation();
   const { user, refetch, setUser } = useAppAuth();
@@ -202,49 +344,14 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex relative overflow-hidden">
-      {/* Animated background elements */}
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(5deg); }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        .animate-pulse-glow {
-          animation: pulse-glow 3s ease-in-out infinite;
-        }
-      `}</style>
-
       {/* Left panel - decorative with sophisticated design */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center relative overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, oklch(0.50 0.14 10) 0%, oklch(0.65 0.12 30) 50%, oklch(0.75 0.08 45) 100%)",
+          background: "linear-gradient(135deg, #2b2018 0%, #5d4633 52%, #8f6c35 100%)",
         }}
       >
-        {/* Animated background elements */}
-        <div className="absolute inset-0 opacity-20">
-          {Array.from({ length: 15 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full animate-pulse-glow"
-              style={{
-                width: `${Math.random() * 300 + 100}px`,
-                height: `${Math.random() * 300 + 100}px`,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent)",
-                transform: "translate(-50%, -50%)",
-                animationDelay: `${i * 0.2}s`,
-              }}
-            />
-          ))}
-        </div>
+        <InteractiveParticles />
 
         {/* Content */}
         <div className="relative z-10 text-center text-white px-12 max-w-md">
@@ -266,16 +373,12 @@ export default function Login() {
               { icon: Clock, label: "Cronograma", desc: "Organização em tempo real" },
               { icon: BarChart3, label: "Dashboard", desc: "Indicadores e análises" },
               { icon: CheckCircle2, label: "Organização", desc: "Gestão simplificada" },
-            ].map((item, idx) => {
+            ].map((item) => {
               const Icon = item.icon;
               return (
                 <div      
                   key={item.label}
                   className="bg-white/10 rounded-xl p-4 backdrop-blur-md border border-white/20 hover:bg-white/15 transition-all duration-300 hover:border-white/40 transform hover:scale-105"
-                  style={{
-                    animation: `float 8s ease-in-out infinite`,
-                    animationDelay: `${idx * 0.15}s`,
-                  }}
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">

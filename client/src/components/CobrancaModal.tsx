@@ -84,8 +84,14 @@ export default function CobrancaModal({ open, onClose, onSuccess, agendamentoId,
   }, [cobranca, open, reset, agendamento]);
 
   const createMutation = trpc.cobrancas.create.useMutation({
-    onSuccess: () => {
-      toast.success("Cobrança cadastrada! Status atualizado para Confirmado.");
+    onSuccess: data => {
+      if (data?.googleCalendarSync === "synced") {
+        toast.success("Cobrança cadastrada e evento adicionado ao Google Agenda!");
+      } else if (data?.googleCalendarSync === "failed") {
+        toast.warning("Cobrança cadastrada, mas não foi possível sincronizar o Google Agenda.");
+      } else {
+        toast.success("Cobrança cadastrada! Status atualizado para Confirmado.");
+      }
       onSuccess();
       onClose();
     },

@@ -92,6 +92,20 @@
       "when": 1777800000000,
       "tag": "0012_mighty_hawk_owl",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1784740671016,
+      "tag": "0013_high_wiccan",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1784743556417,
+      "tag": "0014_flawless_shriek",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { completePastAgendamentos } from "../db";
+import { registerGoogleCalendarRoutes } from "../googleCalendarRoutes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -28,6 +30,15 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  await completePastAgendamentos();
+
+  const statusUpdateInterval = setInterval(() => {
+    completePastAgendamentos().catch(error =>
+      console.error("Erro ao concluir agendamentos antigos:", error)
+    );
+  }, 60 * 60 * 1000);
+  statusUpdateInterval.unref();
+
   const app = express();
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
@@ -35,6 +46,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  registerGoogleCalendarRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

@@ -22,6 +22,8 @@ export const users = mysqlTable("users", {
   profilePhoto: text("profilePhoto"), // URL da foto de perfil
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   gerarContratoAutomaticamente: boolean("gerar_contrato_automaticamente").notNull().default(false),
+  googleCalendarRefreshToken: text("google_calendar_refresh_token"),
+  googleCalendarConnectedAt: timestamp("google_calendar_connected_at"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -43,6 +45,9 @@ export const agendamentos = mysqlTable("agendamentos", {
     .default("orcamento")
     .notNull(),
   observacoes: text("observacoes"),
+  googleCalendarEventId: varchar("google_calendar_event_id", { length: 255 }),
+  googleCalendarSyncedAt: timestamp("google_calendar_synced_at"),
+  googleCalendarSyncError: text("google_calendar_sync_error"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -93,6 +98,7 @@ export const contratos = mysqlTable("contratos", {
   bairro: varchar("bairro", { length: 100 }).notNull(),
   cidade: varchar("cidade", { length: 100 }).notNull(),
   estado: varchar("estado", { length: 2 }).notNull(),
+  isDefault: boolean("isDefault").notNull().default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

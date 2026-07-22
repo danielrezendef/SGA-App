@@ -40,86 +40,98 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-ivory: var(--drf-ivory);
+  --color-cream: var(--drf-cream);
+  --color-champagne: var(--drf-champagne);
+  --color-gold: var(--drf-gold);
+  --color-espresso: var(--drf-espresso);
+  --color-umber: var(--drf-umber);
 }
 
 :root {
-  /* Rose Gold & Champagne theme for wedding management */
+  /* DRFMusical palette — use these tokens for all new interface colors. */
+  --drf-ivory: #fbf7ef;
+  --drf-cream: #f2eadb;
+  --drf-champagne: #e5d1a3;
+  --drf-gold: #b9934f;
+  --drf-gold-light: #d7bd79;
+  --drf-gold-dark: #8f6c35;
+  --drf-espresso: #2b2018;
+  --drf-umber: #5d4633;
+
   --radius: 0.75rem;
 
-  --background: oklch(0.99 0.004 55);
-  --foreground: oklch(0.18 0.02 30);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 30);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 30);
-
-  /* Rose gold primary */
-  --primary: oklch(0.50 0.14 10);
-  --primary-foreground: oklch(0.99 0.005 60);
-
-  --secondary: oklch(0.96 0.01 55);
-  --secondary-foreground: oklch(0.25 0.02 30);
-  --muted: oklch(0.96 0.008 55);
-  --muted-foreground: oklch(0.52 0.02 30);
-  --accent: oklch(0.94 0.03 25);
-  --accent-foreground: oklch(0.25 0.02 30);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.90 0.01 55);
-  --input: oklch(0.90 0.01 55);
-  --ring: oklch(0.50 0.14 10);
+  --background: var(--drf-ivory);
+  --foreground: var(--drf-espresso);
+  --card: #fffdf8;
+  --card-foreground: var(--drf-espresso);
+  --popover: #fffdf8;
+  --popover-foreground: var(--drf-espresso);
+  --primary: var(--drf-gold);
+  --primary-foreground: var(--drf-espresso);
+  --secondary: var(--drf-cream);
+  --secondary-foreground: var(--drf-espresso);
+  --muted: var(--drf-cream);
+  --muted-foreground: #76572f;
+  --accent: var(--drf-champagne);
+  --accent-foreground: var(--drf-espresso);
+  --destructive: #d85858;
+  --destructive-foreground: var(--drf-ivory);
+  --border: var(--drf-champagne);
+  --input: var(--drf-champagne);
+  --ring: var(--drf-gold);
 
   /* Charts */
-  --chart-1: oklch(0.50 0.14 10);
-  --chart-2: oklch(0.65 0.12 145);
-  --chart-3: oklch(0.70 0.14 60);
-  --chart-4: oklch(0.55 0.10 220);
-  --chart-5: oklch(0.60 0.12 300);
+  --chart-1: var(--drf-gold);
+  --chart-2: var(--drf-umber);
+  --chart-3: var(--drf-gold-light);
+  --chart-4: var(--drf-gold-dark);
+  --chart-5: var(--drf-champagne);
 
   /* Sidebar */
-  --sidebar: oklch(0.99 0.004 55);
-  --sidebar-foreground: oklch(0.18 0.02 30);
-  --sidebar-primary: oklch(0.50 0.14 10);
-  --sidebar-primary-foreground: oklch(0.99 0.005 60);
-  --sidebar-accent: oklch(0.95 0.03 25);
-  --sidebar-accent-foreground: oklch(0.25 0.02 30);
-  --sidebar-border: oklch(0.90 0.01 55);
-  --sidebar-ring: oklch(0.50 0.14 10);
+  --sidebar: var(--drf-cream);
+  --sidebar-foreground: var(--drf-espresso);
+  --sidebar-primary: var(--drf-gold);
+  --sidebar-primary-foreground: var(--drf-espresso);
+  --sidebar-accent: var(--drf-champagne);
+  --sidebar-accent-foreground: var(--drf-espresso);
+  --sidebar-border: var(--drf-champagne);
+  --sidebar-ring: var(--drf-gold);
 }
 
 .dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  --background: var(--drf-espresso);
+  --foreground: var(--drf-ivory);
+  --card: #382a20;
+  --card-foreground: var(--drf-ivory);
+  --popover: #382a20;
+  --popover-foreground: var(--drf-ivory);
+  --primary: var(--drf-gold-light);
+  --primary-foreground: var(--drf-espresso);
+  --secondary: var(--drf-umber);
+  --secondary-foreground: var(--drf-ivory);
+  --muted: #493629;
+  --muted-foreground: var(--drf-champagne);
+  --accent: var(--drf-umber);
+  --accent-foreground: var(--drf-ivory);
+  --destructive: #d85858;
+  --destructive-foreground: var(--drf-ivory);
+  --border: color-mix(in srgb, var(--drf-champagne) 28%, transparent);
+  --input: color-mix(in srgb, var(--drf-champagne) 36%, transparent);
+  --ring: var(--drf-gold-light);
+  --chart-1: var(--drf-gold-light);
+  --chart-2: var(--drf-champagne);
+  --chart-3: var(--drf-gold);
+  --chart-4: #c9a75d;
+  --chart-5: var(--drf-umber);
+  --sidebar: #382a20;
+  --sidebar-foreground: var(--drf-ivory);
+  --sidebar-primary: var(--drf-gold-light);
+  --sidebar-primary-foreground: var(--drf-espresso);
+  --sidebar-accent: var(--drf-umber);
+  --sidebar-accent-foreground: var(--drf-ivory);
+  --sidebar-border: color-mix(in srgb, var(--drf-champagne) 28%, transparent);
+  --sidebar-ring: var(--drf-gold-light);
 }
 
 @layer base {
@@ -128,6 +140,14 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  html {
+    scrollbar-color: var(--drf-gold) var(--drf-cream);
+    scrollbar-width: thin;
+  }
+  ::selection {
+    background: var(--drf-gold);
+    color: var(--drf-ivory);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -208,7 +228,7 @@
 
   /* Gradient text */
   .gradient-text {
-    background: linear-gradient(135deg, oklch(0.50 0.14 10), oklch(0.65 0.12 30));
+    background: linear-gradient(135deg, var(--drf-gold-light), var(--drf-gold-dark));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

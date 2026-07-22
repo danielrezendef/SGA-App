@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import WeddingLayout from "@/components/WeddingLayout";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Upload, Mail, User, Lock, FileText } from "lucide-react";
+import { Loader2, Upload, Mail, User, Lock, FileText, CalendarDays, CheckCircle2, AlertCircle, Unplug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -28,6 +28,15 @@ export default function Perfil() {
   const updateProfileMutation = trpc.auth.updateProfile.useMutation();
   const changePasswordMutation = trpc.auth.changePassword.useMutation();
   const updateContratoAutomaticoMutation = trpc.auth.updateContratoAutomatico.useMutation();
+  const calendarStatus = trpc.googleCalendar.status.useQuery();
+  const calendarAuthorizationMutation = trpc.googleCalendar.authorizationUrl.useMutation();
+  const calendarDisconnectMutation = trpc.googleCalendar.disconnect.useMutation({
+    onSuccess: async () => {
+      await calendarStatus.refetch();
+      toast.success("Google Agenda desconectado.");
+    },
+    onError: error => toast.error(error.message),
+  });
 
   const [gerarContratoAutomaticamente, setGerarContratoAutomaticamente] = useState(
     Boolean(user?.gerarContratoAutomaticamente ?? false)
@@ -36,6 +45,29 @@ export default function Perfil() {
   useEffect(() => {
     setGerarContratoAutomaticamente(Boolean(user?.gerarContratoAutomaticamente ?? false));
   }, [user?.gerarContratoAutomaticamente]);
+
+  useEffect(() => {
+    const result = new URLSearchParams(window.location.search).get("googleCalendar");
+    if (!result) return;
+    if (result === "connected") {
+      toast.success("Google Agenda conectado com sucesso.");
+      void calendarStatus.refetch();
+    } else if (result === "cancelled") {
+      toast.info("Conexão com Google Agenda cancelada.");
+    } else {
+      toast.error("Não foi possível conectar o Google Agenda.");
+    }
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
+
+  const handleConnectGoogleCalendar = async () => {
+    try {
+      const { url } = await calendarAuthorizationMutation.mutateAsync();
+      window.location.assign(url);
+    } catch (error: any) {
+      toast.error(error?.message || "Não foi possível iniciar a conexão com o Google Agenda.");
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -230,6 +262,76 @@ export default function Perfil() {
           </CardContent>
         </Card>
 
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5" />
+              Google Agenda
+            </CardTitle>
+            <CardDescription>
+              Adicione automaticamente à sua agenda os eventos confirmados pelo pagamento.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {calendarStatus.isLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> Verificando conexão...
+              </div>
+            ) : !calendarStatus.data?.configured ? (
+              <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                <AlertCircle className="mt-0.5 w-5 h-5 shrink-0 text-amber-600" />
+                <div>
+                  <p className="text-sm font-medium">Integração ainda não configurada no servidor</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Configure as credenciais OAuth do Google Calendar para liberar a conexão.
+                  </p>
+                </div>
+              </div>
+            ) : calendarStatus.data.connected ? (
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 w-5 h-5 text-emerald-600" />
+                  <div>
+                    <p className="text-sm font-medium">Agenda conectada</p>
+                    <p className="text-sm text-muted-foreground">
+                      Novos eventos confirmados serão enviados para sua agenda principal.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => calendarDisconnectMutation.mutate()}
+                  disabled={calendarDisconnectMutation.isPending}
+                >
+                  {calendarDisconnectMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Unplug className="w-4 h-4 mr-2" />
+                  )}
+                  Desconectar
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Autorize o SGA App a criar eventos na agenda principal da sua conta Google.
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleConnectGoogleCalendar}
+                  disabled={calendarAuthorizationMutation.isPending}
+                >
+                  {calendarAuthorizationMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Conectar Google Agenda
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Card de Foto de Perfil */}
         <Card className="mb-6">
           <CardHeader>
@@ -247,11 +349,11 @@ export default function Perfil() {
                 <img
                   src={user.profilePhoto}
                   alt="Foto de perfil"
-                  className="w-20 h-20 rounded-full object-cover border-2 border-rose-200"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-champagne"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-rose-100 flex items-center justify-center">
-                  <User className="w-10 h-10 text-rose-600" />
+                <div className="w-20 h-20 rounded-full bg-champagne/40 flex items-center justify-center">
+                  <User className="w-10 h-10 text-gold" />
                 </div>
               )}
               <div className="flex-1">
@@ -333,7 +435,7 @@ export default function Perfil() {
               {!isEditing ? (
                 <Button
                   onClick={() => setIsEditing(true)}
-                  className="bg-rose-600 hover:bg-rose-700"
+                  className="bg-primary hover:bg-gold/90 text-primary-foreground"
                 >
                   Editar Perfil
                 </Button>
@@ -342,7 +444,7 @@ export default function Perfil() {
                   <Button
                     onClick={handleSaveProfile}
                     disabled={updateProfileMutation.isPending}
-                    className="bg-rose-600 hover:bg-rose-700"
+                    className="bg-primary hover:bg-gold/90 text-primary-foreground"
                   >
                     {updateProfileMutation.isPending ? (
                       <>
@@ -414,7 +516,7 @@ export default function Perfil() {
                 <Button
                   type="submit"
                   disabled={changePasswordMutation.isPending}
-                  className="bg-rose-600 hover:bg-rose-700"
+                  className="bg-primary hover:bg-gold/90 text-primary-foreground"
                 >
                   {changePasswordMutation.isPending ? (
                     <>

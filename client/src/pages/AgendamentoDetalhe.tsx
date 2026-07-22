@@ -444,10 +444,10 @@ export default function AgendamentoDetalhe() {
                   return (
                     <div key={step.status} className="flex items-center gap-3">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all
-                        ${isActive ? "bg-primary text-primary-foreground shadow-sm" : isDone ? "bg-green-100 text-green-600" : "bg-muted text-muted-foreground"}`}>
+                        ${isActive ? "bg-[oklch(0.50_0.14_10)] text-[oklch(0.99_0.005_60)] shadow-sm" : isDone ? "bg-green-100 text-green-600" : "bg-muted text-muted-foreground"}`}>
                         {isDone ? "✓" : idx + 1}
                       </div>
-                      <span className={`text-sm ${isActive ? "font-semibold text-primary" : isDone ? "text-muted-foreground line-through" : "text-muted-foreground"}`}>
+                      <span className={`text-sm ${isActive ? "font-semibold text-[oklch(0.50_0.14_10)]" : isDone ? "text-muted-foreground line-through" : "text-muted-foreground"}`}>
                         {step.label}
                       </span>
                     </div>

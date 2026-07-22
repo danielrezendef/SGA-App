@@ -111,8 +111,8 @@ export default function Dashboard() {
                 <p className="text-3xl font-bold mt-1">{stats?.totalAno ?? 0}</p>
                 <p className="text-xs text-muted-foreground mt-1">Agendamentos</p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-yellow-50">
-                <TrendingUp className="w-5 h-5 text-yellow-500" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-champagne/40">
+                <TrendingUp className="w-5 h-5 text-gold" />
               </div>
             </div>
           </CardContent>
@@ -123,13 +123,13 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">A receber</p>
-                <p className="text-2xl font-bold mt-1 text-green-600">
+                <p className="text-2xl font-bold mt-1 text-gold">
                   {formatCurrency(stats?.valorConfirmado ?? 0)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Valor total confirmados a receber</p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-50">
-                <DollarSign className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gold/10">
+                <DollarSign className="w-5 h-5 text-gold" />
               </div>
             </div>
           </CardContent>
@@ -140,13 +140,13 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Em Orçamento</p>
-                <p className="text-2xl font-bold mt-1 text-cyan-600">
+                <p className="text-2xl font-bold mt-1 text-umber">
                   {formatCurrency(stats?.valorOrcamento ?? 0)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Receita em orçamento</p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50">
-                <Receipt className="w-5 h-5 text-cyan-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-umber/10">
+                <Receipt className="w-5 h-5 text-umber" />
               </div>
             </div>
           </CardContent>
@@ -165,14 +165,14 @@ export default function Dashboard() {
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData} barSize={32}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 55)" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "oklch(0.52 0.02 30)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "oklch(0.52 0.02 30)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip
-                    contentStyle={{ borderRadius: "8px", border: "1px solid oklch(0.90 0.01 55)", fontSize: "12px" }}
+                    contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: "12px" }}
                     formatter={(v) => [v, "Agendamentos"]}
                   />
-                  <Bar dataKey="total" fill="oklch(0.50 0.14 10)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="total" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -192,7 +192,7 @@ export default function Dashboard() {
           <CardContent className="space-y-3">
             {stats?.porStatus && stats.porStatus.length > 0 ? (
               stats.porStatus.map((item: { status: string; count: number }) => {
-                const info = statusMap[item.status] ?? { label: item.status, color: "#888" };
+                const info = statusMap[item.status] ?? { label: item.status, color: "var(--muted-foreground)" };
                 const total = stats.porStatus.reduce((a: number, b: { count: number }) => a + b.count, 0);
                 const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
                 return (

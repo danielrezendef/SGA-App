@@ -55,26 +55,26 @@ const styles = StyleSheet.create({
   paddingBottom: 40,
   paddingLeft: 40,
   fontFamily: "Helvetica",
-  backgroundColor: "#ffffff",
+  backgroundColor: "#fbf7ef",
 },
 
 logo: {
-  width: 480,
-  height: 160,
+  width: 210,
+  height: 100,
   objectFit: "contain",
   alignSelf: "flex-start",
-  marginBottom: 0,
-  marginLeft: -126,
+  marginBottom: 4,
+  marginLeft: 0,
 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#c41e3a",
+    color: "#8f6c35",
     marginBottom: 5,
   },
   subtitle: {
     fontSize: 11,
-    color: "#666",
+    color: "#76572f",
   },
   section: {
     marginBottom: 20,
@@ -82,11 +82,11 @@ logo: {
   sectionTitle: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#333",
+    color: "#2b2018",
     marginBottom: 10,
     paddingBottom: 5,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#e5d1a3",
   },
   row: {
     display: "flex",
@@ -96,12 +96,12 @@ logo: {
   label: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#666",
+    color: "#76572f",
     width: "30%",
   },
   value: {
     fontSize: 10,
-    color: "#333",
+    color: "#2b2018",
     width: "70%",
   },
   twoColumn: {
@@ -116,10 +116,10 @@ logo: {
     marginTop: 30,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "#e5d1a3",
     textAlign: "center",
     fontSize: 9,
-    color: "#999",
+    color: "#8f6c35",
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -149,7 +149,7 @@ logo: {
     marginTop: 20,
     paddingTop: 15,
     borderTopWidth: 2,
-    borderTopColor: "#c41e3a",
+    borderTopColor: "#b9934f",
   },
   totalRow: {
     display: "flex",
@@ -160,7 +160,7 @@ logo: {
   totalValue: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#c41e3a",
+    color: "#8f6c35",
   },
 
   // CONTRATO
@@ -168,7 +168,7 @@ logo: {
     paddingTop: 42,
     paddingBottom: 42,
     paddingHorizontal: 52,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fbf7ef",
     fontFamily: "Helvetica",
   },
   contractTitle: {
@@ -177,7 +177,7 @@ logo: {
     textAlign: "center",
     textTransform: "uppercase",
     marginBottom: 24,
-    color: "#000000",
+    color: "#2b2018",
   },
   contractSectionTitle: {
     fontSize: 11,
@@ -185,21 +185,21 @@ logo: {
     textTransform: "uppercase",
     marginTop: 12,
     marginBottom: 8,
-    color: "#000000",
+    color: "#2b2018",
   },
   paragraph: {
     fontSize: 10.5,
     lineHeight: 1.6,
     textAlign: "justify",
     marginBottom: 10,
-    color: "#000000",
+    color: "#2b2018",
   },
   clause: {
     fontSize: 10.5,
     lineHeight: 1.6,
     textAlign: "justify",
     marginBottom: 12,
-    color: "#000000",
+    color: "#2b2018",
   },
   bold: {
     fontWeight: "bold",
@@ -208,7 +208,7 @@ logo: {
     marginTop: 18,
     fontSize: 10.5,
     textAlign: "left",
-    color: "#000000",
+    color: "#2b2018",
   },
   signaturesContainer: {
     marginTop: 34,
@@ -225,7 +225,7 @@ logo: {
   signatureLine: {
     width: "100%",
     borderTopWidth: 1,
-    borderTopColor: "#000000",
+    borderTopColor: "#5d4633",
     marginBottom: 6,
   },
   signatureName: {
@@ -253,7 +253,7 @@ logo: {
   witnessLine: {
     width: "100%",
     borderTopWidth: 1,
-    borderTopColor: "#000000",
+    borderTopColor: "#5d4633",
     marginBottom: 5,
   },
   witnessText: {
