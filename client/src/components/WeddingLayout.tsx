@@ -222,6 +222,28 @@ function WeddingLayoutContent({
 
           {/* Footer */}
           <SidebarFooter className="p-3 border-t border-border/40">
+            {!isCollapsed && (
+              <nav
+                aria-label="Links legais"
+                className="mb-1 flex items-center justify-center gap-3 px-2 text-[11px] text-muted-foreground"
+              >
+                <button
+                  type="button"
+                  onClick={() => setLocation("/politica-de-privacidade")}
+                  className="transition-colors hover:text-foreground hover:underline"
+                >
+                  Privacidade
+                </button>
+                <span aria-hidden="true">•</span>
+                <button
+                  type="button"
+                  onClick={() => setLocation("/termos-de-servico")}
+                  className="transition-colors hover:text-foreground hover:underline"
+                >
+                  Termos
+                </button>
+              </nav>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent/60 transition-colors w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">

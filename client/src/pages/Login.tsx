@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -592,6 +592,17 @@ export default function Login() {
               </div>
             </CardContent>
           </Card>
+          <nav
+            aria-label="Links legais"
+            className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
+          >
+            <Link href="/politica-de-privacidade" className="transition-colors hover:text-foreground hover:underline">
+              Política de Privacidade
+            </Link>
+            <Link href="/termos-de-servico" className="transition-colors hover:text-foreground hover:underline">
+              Termos de Serviço
+            </Link>
+          </nav>
         </div>
       </div>
     </div>

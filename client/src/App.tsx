@@ -14,6 +14,8 @@ import Calendario from "./pages/Calendario";
 import Usuarios from "./pages/Usuarios";
 import Perfil from "./pages/Perfil";
 import Contratos from "./pages/Contratos";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import TermosServico from "./pages/TermosServico";
 
 
 function ProtectedRoute({ component: Component, adminOnly = false }: { component: React.ComponentType; adminOnly?: boolean }) {
@@ -34,6 +36,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/politica-de-privacidade" component={PoliticaPrivacidade} />
+      <Route path="/termos-de-servico" component={TermosServico} />
       <Route path="/dashboard">
         <ProtectedRoute component={Dashboard} />
       </Route>
