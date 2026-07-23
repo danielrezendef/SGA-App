@@ -16,6 +16,7 @@ import Perfil from "./pages/Perfil";
 import Contratos from "./pages/Contratos";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
+import Home from "./pages/Home";
 
 
 function ProtectedRoute({ component: Component, adminOnly = false }: { component: React.ComponentType; adminOnly?: boolean }) {
@@ -31,8 +32,6 @@ function ProtectedRoute({ component: Component, adminOnly = false }: { component
 }
 
 function Router() {
-  const { user, loading } = useAppAuth();
-
   return (
     <Switch>
       <Route path="/login" component={Login} />
@@ -61,9 +60,7 @@ function Router() {
       <Route path="/perfil">
         <ProtectedRoute component={Perfil} />
       </Route>
-      <Route path="/">
-        {loading ? null : user ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
-      </Route>
+      <Route path="/" component={Home} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

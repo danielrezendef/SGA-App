@@ -1,6 +1,6 @@
 {
-  "name": "SGA-App",
-  "short_name": "SGA-App",
+  "name": "SGA App",
+  "short_name": "SGA App",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
