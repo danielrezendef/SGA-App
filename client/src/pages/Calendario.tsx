@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import AgendamentoModal from "@/components/AgendamentoModal";
 import { formatDateSafe, toISODateString } from "@shared/dateUtils";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge, { getStatusAccentClass, getStatusFillClass } from "@/components/StatusBadge";
 
 type ViewType = "month" | "week" | "day";
 
@@ -279,18 +279,18 @@ export default function Calendario() {
               return (
               <Card
                 key={ev.id}
-                className={`group transition-all cursor-pointer overflow-hidden rounded-2xl ${
+                className={`group transition-all cursor-pointer overflow-hidden rounded-2xl border-border/60 ${
                   pastEvent
-                    ? "border-border bg-muted/70 text-muted-foreground hover:border-foreground/30"
-                    : "border-border/60 hover:border-primary/40 hover:shadow-xl"
+                    ? "opacity-70 text-muted-foreground hover:opacity-90"
+                    : "hover:shadow-xl"
                 }`}
                 onClick={() => navigate(`/agendamentos/${ev.id}`)}
               >
                 <CardContent className="p-0 flex">
-                  <div className={`w-2 transition-colors ${pastEvent ? "bg-foreground/20 group-hover:bg-foreground/30" : "bg-primary/20 group-hover:bg-primary"}`} />
+                  <div className={`w-2 transition-opacity ${getStatusFillClass(ev.status)} ${pastEvent ? "opacity-40" : "opacity-70 group-hover:opacity-100"}`} />
                   <div className="p-5 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-6">
-                      <div className={`text-2xl font-black tabular-nums tracking-tighter ${pastEvent ? "text-foreground/60" : "text-primary"}`}>
+                      <div className={`text-2xl font-black tabular-nums tracking-tighter ${pastEvent ? "text-foreground/60" : getStatusAccentClass(ev.status)}`}>
                         {ev.horario?.slice(0, 5)}
                       </div>
                       <div className="space-y-1">

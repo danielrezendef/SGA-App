@@ -284,6 +284,22 @@
     border: 1px solid oklch(0.80 0.02 30);
   }
 
+  /* Status accents for text, icons and decorative elements inside cards. */
+  .status-accent-orcamento { color: oklch(0.45 0.13 220); }
+  .status-accent-confirmado { color: oklch(0.43 0.15 145); }
+  .status-accent-pagamento { color: oklch(0.52 0.15 60); }
+  .status-accent-concluido { color: oklch(0.42 0.02 30); }
+
+  .status-fill-orcamento { background: oklch(0.55 0.13 220); }
+  .status-fill-confirmado { background: oklch(0.55 0.15 145); }
+  .status-fill-pagamento { background: oklch(0.62 0.15 60); }
+  .status-fill-concluido { background: oklch(0.50 0.02 30); }
+
+  .dark .status-accent-orcamento { color: oklch(0.78 0.10 220); }
+  .dark .status-accent-confirmado { color: oklch(0.78 0.12 145); }
+  .dark .status-accent-pagamento { color: oklch(0.82 0.12 60); }
+  .dark .status-accent-concluido { color: oklch(0.78 0.02 30); }
+
   /* Gradient text */
   .gradient-text {
     background: linear-gradient(135deg, var(--drf-gold-light), var(--drf-gold-dark));

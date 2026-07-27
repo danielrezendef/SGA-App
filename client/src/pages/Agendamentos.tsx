@@ -32,7 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { formatDateSafe } from "@shared/dateUtils";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
 import AgendamentoModal from "@/components/AgendamentoModal";
 
 function formatCurrency(value: string | number) {
@@ -270,10 +270,13 @@ export default function Agendamentos() {
             {/* Mobile cards */}
             <div className="md:hidden divide-y divide-border/30">
               {data?.items.map((ag) => (
-                <div key={ag.id} className="p-4 hover:bg-accent/20 transition-colors">
+                <div
+                  key={ag.id}
+                  className="p-4 hover:bg-accent/20 transition-colors"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm">{ag.descricao}</p>
+                      <p className={`font-semibold text-sm ${getStatusAccentClass(ag.status)}`}>{ag.descricao}</p>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Calendar className="w-3 h-3" />

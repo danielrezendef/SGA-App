@@ -25,7 +25,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
 import { formatDateSafe } from "@shared/dateUtils";
 
 const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -123,13 +123,13 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">A receber</p>
-                <p className="text-2xl font-bold mt-1 text-gold">
+                <p className={`text-2xl font-bold mt-1 ${getStatusAccentClass("confirmado")}`}>
                   {formatCurrency(stats?.valorConfirmado ?? 0)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Valor total confirmados a receber</p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gold/10">
-                <DollarSign className="w-5 h-5 text-gold" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center status-confirmado">
+                <DollarSign className="w-5 h-5" />
               </div>
             </div>
           </CardContent>
@@ -140,13 +140,13 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Em Orçamento</p>
-                <p className="text-2xl font-bold mt-1 text-umber">
+                <p className={`text-2xl font-bold mt-1 ${getStatusAccentClass("orcamento")}`}>
                   {formatCurrency(stats?.valorOrcamento ?? 0)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Receita em orçamento</p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-umber/10">
-                <Receipt className="w-5 h-5 text-umber" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center status-orcamento">
+                <Receipt className="w-5 h-5" />
               </div>
             </div>
           </CardContent>
@@ -196,9 +196,12 @@ export default function Dashboard() {
                 const total = stats.porStatus.reduce((a: number, b: { count: number }) => a + b.count, 0);
                 const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
                 return (
-                  <div key={item.status} className="space-y-1.5">
+                  <div
+                    key={item.status}
+                    className="space-y-1.5 rounded-lg border border-border/50 p-3"
+                  >
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{info.label}</span>
+                      <span className={`font-medium ${getStatusAccentClass(item.status)}`}>{info.label}</span>
                       <span className="text-muted-foreground">{item.count} ({pct}%)</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -240,18 +243,18 @@ export default function Dashboard() {
                 <div
                   key={ev.id}
                   onClick={() => navigate(`/agendamentos/${ev.id}`)}
-                  className="flex items-center gap-4 p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-accent/30 transition-all cursor-pointer group"
+                  className="flex items-center gap-4 p-3 rounded-xl border border-border/50 hover:border-primary/30 transition-all cursor-pointer group hover:shadow-sm"
                 >
-                  <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 bg-primary/8 border border-primary/15">
-                    <span className="text-[10px] font-medium text-primary uppercase">
+                  <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 border ${getStatusAccentClass(ev.status)}`}>
+                    <span className="text-[10px] font-medium uppercase">
                       {formatDateSafe(ev.dataEvento, "MMM")}
                     </span>
-                    <span className="text-lg font-bold text-primary leading-none">
+                    <span className="text-lg font-bold leading-none">
                       {formatDateSafe(ev.dataEvento, "dd")}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">
+                    <p className={`font-semibold text-sm truncate ${getStatusAccentClass(ev.status)}`}>
                       {ev.descricao}
                     </p>
                     <div className="flex items-center gap-3 mt-1">
