@@ -54,6 +54,9 @@ type Particle = {
   vx: number;
   vy: number;
   radius: number;
+  phase: number;
+  drift: number;
+  opacity: number;
 };
 
 function InteractiveParticles() {
@@ -75,15 +78,18 @@ function InteractiveParticles() {
     let frameId = 0;
 
     const createParticles = () => {
-      const desiredCount = Math.min(90, Math.max(38, Math.floor((width * height) / 11000)));
+      const desiredCount = Math.min(78, Math.max(34, Math.floor((width * height) / 13500)));
 
       while (particles.length < desiredCount) {
         particles.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: (Math.random() - 0.5) * 0.35,
-          radius: Math.random() * 1.8 + 1,
+          vx: (Math.random() - 0.5) * 0.18,
+          vy: (Math.random() - 0.5) * 0.18,
+          radius: Math.random() * 1.6 + 0.8,
+          phase: Math.random() * Math.PI * 2,
+          drift: Math.random() * 0.06 + 0.025,
+          opacity: Math.random() * 0.28 + 0.38,
         });
       }
       particles.length = desiredCount;
@@ -113,7 +119,7 @@ function InteractiveParticles() {
       pointer.active = false;
     };
 
-    const draw = () => {
+    const draw = (time = 0) => {
       context.clearRect(0, 0, width, height);
 
       particles.forEach((particle, index) => {
@@ -122,19 +128,19 @@ function InteractiveParticles() {
             const dx = particle.x - pointer.x;
             const dy = particle.y - pointer.y;
             const distance = Math.hypot(dx, dy);
-            const interactionRadius = 135;
+            const interactionRadius = 115;
 
             if (distance > 0 && distance < interactionRadius) {
-              const force = (interactionRadius - distance) / interactionRadius;
-              particle.vx += (dx / distance) * force * 0.075;
-              particle.vy += (dy / distance) * force * 0.075;
+              const force = Math.pow((interactionRadius - distance) / interactionRadius, 2);
+              particle.vx += (dx / distance) * force * 0.016;
+              particle.vy += (dy / distance) * force * 0.016;
             }
           }
 
-          particle.vx *= 0.992;
-          particle.vy *= 0.992;
-          particle.x += particle.vx;
-          particle.y += particle.vy;
+          particle.vx *= 0.996;
+          particle.vy *= 0.996;
+          particle.x += particle.vx + Math.cos(time * 0.00035 + particle.phase) * particle.drift;
+          particle.y += particle.vy + Math.sin(time * 0.00028 + particle.phase) * particle.drift;
 
           if (particle.x < -10) particle.x = width + 10;
           if (particle.x > width + 10) particle.x = -10;
@@ -149,25 +155,18 @@ function InteractiveParticles() {
             context.beginPath();
             context.moveTo(particle.x, particle.y);
             context.lineTo(other.x, other.y);
-            context.strokeStyle = `rgba(251, 247, 239, ${(1 - distance / 105) * 0.22})`;
-            context.lineWidth = 0.7;
+            context.strokeStyle = `rgba(251, 247, 239, ${(1 - distance / 105) * 0.14})`;
+            context.lineWidth = 0.6;
             context.stroke();
           }
         }
 
         context.beginPath();
-        context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-        context.fillStyle = "rgba(251, 247, 239, 0.72)";
+        const pulse = 0.88 + Math.sin(time * 0.0012 + particle.phase) * 0.12;
+        context.arc(particle.x, particle.y, particle.radius * pulse, 0, Math.PI * 2);
+        context.fillStyle = `rgba(251, 247, 239, ${particle.opacity * pulse})`;
         context.fill();
       });
-
-      if (pointer.active) {
-        const glow = context.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, 120);
-        glow.addColorStop(0, "rgba(229, 209, 163, 0.16)");
-        glow.addColorStop(1, "rgba(229, 209, 163, 0)");
-        context.fillStyle = glow;
-        context.fillRect(pointer.x - 120, pointer.y - 120, 240, 240);
-      }
 
       if (!reduceMotion) frameId = window.requestAnimationFrame(draw);
     };
@@ -188,6 +187,98 @@ function InteractiveParticles() {
   }, []);
 
   return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
+}
+
+function ScheduleBackdrop() {
+  const calendarDays = ["", "", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+  const [dateStep, setDateStep] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const interval = window.setInterval(() => setDateStep(step => (step + 1) % 5), 2800);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const selectedDay = String(8 + dateStep);
+  const eventDay = 24 + dateStep;
+  const rangeStart = String(8 + dateStep).padStart(2, "0");
+  const rangeEnd = String(12 + dateStep).padStart(2, "0");
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden text-white" aria-hidden="true">
+      <svg className="absolute inset-0 h-full w-full opacity-20" viewBox="0 0 1440 900" preserveAspectRatio="none">
+        <path
+          d="M-80 690 C 230 490, 390 780, 690 590 S 1110 340, 1520 520"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeDasharray="8 14"
+        />
+        <path
+          d="M-40 220 C 260 400, 440 90, 720 260 S 1110 480, 1490 190"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          opacity="0.55"
+        />
+      </svg>
+
+      <div className="absolute -left-16 top-[12%] hidden h-64 w-64 rounded-full border border-white/15 bg-white/5 shadow-2xl backdrop-blur-[2px] sm:block">
+        <div className="absolute inset-7 rounded-full border border-dashed border-white/25" />
+        <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 opacity-65">
+          <span className="absolute left-1/2 top-2 h-2 w-px -translate-x-1/2 bg-white/45" />
+          <span className="absolute bottom-2 left-1/2 h-2 w-px -translate-x-1/2 bg-white/45" />
+          <span className="absolute left-2 top-1/2 h-px w-2 -translate-y-1/2 bg-white/45" />
+          <span className="absolute right-2 top-1/2 h-px w-2 -translate-y-1/2 bg-white/45" />
+          <span className="login-clock-hour absolute bottom-1/2 left-1/2 h-8 w-1 rounded-full bg-white/55" />
+          <span className="login-clock-minute absolute bottom-1/2 left-1/2 h-11 w-0.5 rounded-full bg-white/70" />
+          <span className="login-clock-second absolute bottom-1/2 left-1/2 h-12 w-px rounded-full bg-champagne/90" />
+          <span className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 shadow-lg" />
+        </div>
+      </div>
+
+      <div className="absolute -right-10 bottom-[8%] hidden w-72 rotate-[-7deg] rounded-3xl border border-white/20 bg-white/8 p-5 shadow-2xl backdrop-blur-sm md:block">
+        <div className="mb-4 flex items-center justify-between border-b border-white/15 pb-3">
+          <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-white/60">
+            <Calendar className="h-4 w-4" />
+            JULHO
+          </div>
+          <span className="text-[10px] text-white/40">2026</span>
+        </div>
+        <div className="mb-2 grid grid-cols-7 gap-2 text-center text-[8px] font-medium text-white/35">
+          {['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}
+        </div>
+        <div className="grid grid-cols-7 gap-2 text-center text-[10px] text-white/55">
+          {calendarDays.map((day, index) => (
+            <span
+              key={`${day}-${index}`}
+              className={`flex aspect-square items-center justify-center rounded-full transition-all duration-700 ${day === selectedDay ? "scale-110 bg-white/25 text-white shadow-lg" : ""}`}
+            >
+              {day}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="absolute right-[11%] top-[10%] rotate-6 rounded-2xl border border-white/20 bg-white/10 px-5 py-4 shadow-xl backdrop-blur-sm">
+        <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">Próximo evento</p>
+        <div className="mt-1 flex items-end gap-3">
+          <span key={eventDay} className="login-date-tick text-3xl font-light text-white/70">{eventDay}</span>
+          <span className="pb-1 text-xs text-white/45">18:30</span>
+        </div>
+      </div>
+
+      <div className="absolute bottom-[13%] left-[10%] -rotate-6 rounded-2xl border border-white/15 bg-white/8 px-5 py-3 shadow-xl backdrop-blur-sm">
+        <div className="flex items-center gap-3 text-white/50">
+          <Calendar className="h-5 w-5 stroke-[1.2]" />
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.2em]">Agenda</p>
+            <p key={`${rangeStart}-${rangeEnd}`} className="login-date-tick text-sm font-light">{rangeStart} — {rangeEnd}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Login() {
@@ -297,6 +388,7 @@ export default function Login() {
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
+  const glassInputClass = "h-10 border-white/35 bg-white/80 text-espresso placeholder:text-umber/60 shadow-inner transition-all duration-300 focus-visible:border-white/80 focus-visible:ring-white/30";
 
   const onLogin = (data: LoginForm) => loginMutation.mutate(data);
   const onRegister = (data: RegisterForm) => registerMutation.mutate({
@@ -306,20 +398,20 @@ export default function Login() {
   });
 
   const SocialButtons = () => (
-    <div className="mt-6 space-y-3">
+    <div className="mt-4 space-y-2.5">
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border/50"></div>
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Ou continue com</span>
+          <span className="rounded-full bg-espresso/35 px-3 py-0.5 text-white/70 backdrop-blur-md">Ou continue com</span>
         </div>
       </div>
 
       {/* Google Login */}
       <Button
         variant="outline"
-        className="w-full h-11 transition-all duration-300 hover:shadow-md hover:border-primary/50"
+        className="h-10 w-full border-white/35 bg-white/10 text-white transition-all duration-300 hover:bg-white/20 hover:text-white hover:shadow-md"
         onClick={handleGoogleLogin}
         disabled={socialLoading !== null || !GOOGLE_CLIENT_ID}
         type="button"
@@ -343,16 +435,14 @@ export default function Login() {
   );
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden">
+    <div className="relative flex h-dvh min-h-0 overflow-hidden">
       {/* Left panel - decorative with sophisticated design */}
       <div
-        className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center relative overflow-hidden"
+        className="hidden"
         style={{
           background: "linear-gradient(135deg, #2b2018 0%, #5d4633 52%, #8f6c35 100%)",
         }}
       >
-        <InteractiveParticles />
-
         {/* Content */}
         <div className="relative z-10 text-center text-white px-12 max-w-md">
             {/* <div className="flex justify-center -mt-12 mb-6">
@@ -397,44 +487,46 @@ export default function Login() {
       </div>
 
       {/* Right panel - form */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background relative">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }} />
-        </div>
+      <div
+        className="relative flex h-dvh min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-5"
+        style={{
+          background: "linear-gradient(135deg, #665343 0%, #927657 52%, #c2a675 100%)",
+        }}
+      >
+        <InteractiveParticles />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.20),transparent_42%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-espresso/15" />
+        <ScheduleBackdrop />
 
-        <div className="w-full max-w-md relative z-10">
+        <div className="relative z-10 max-h-full w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex justify-center -mt-4">
-            <img
-              src={logoImg}
-              alt="SGA App Logo"
-              className="h-60 w-auto object-contain"
-              width="480"
-              height="319"
-              decoding="async"
-              fetchPriority="high"
-            />
-          </div>
-          <Card className="-mt-6 border-border/50 shadow-2xl shadow-primary/10 backdrop-blur-sm bg-card/95">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">
-                {mode === "login" ? "Seja Bem-vindo" : "Criar sua conta"}
+          <Card className="gap-3 border-white/30 bg-white/15 py-4 text-white shadow-2xl shadow-espresso/30 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/10">
+            <CardHeader className="space-y-0 px-6 text-center">
+              <CardTitle className="flex justify-center">
+                <img
+                  src={logoImg}
+                  alt="SGA App Logo"
+                  className="h-20 w-auto scale-110 object-contain drop-shadow-xl sm:h-24"
+                  width="480"
+                  height="319"
+                  decoding="async"
+                  fetchPriority="high"
+                />
               </CardTitle>
+              {mode === "register" && (
+                <p className="text-sm text-white/70">Preencha os dados para começar</p>
+              )}
             </CardHeader>
             <CardContent>
               {mode === "login" ? (
-                <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="email">E-mail</Label>
                     <Input
                       id="email"
                       type="email"
                       placeholder="seu@email.com"
-                      className="transition-all duration-300 focus:shadow-md focus:shadow-primary/20"
+                      className={glassInputClass}
                       {...loginForm.register("email")}
                     />
                     {loginForm.formState.errors.email && (
@@ -448,13 +540,13 @@ export default function Login() {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pr-10 transition-all duration-300 focus:shadow-md focus:shadow-primary/20"
+                        className={`${glassInputClass} pr-10`}
                         {...loginForm.register("password")}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-umber/70 transition-colors hover:text-espresso"
                       >
                         {showPassword ? (
                           <EyeOff className="w-4 h-4" />
@@ -469,7 +561,7 @@ export default function Login() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full h-11 mt-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
+                    className="mt-1 h-10 w-full transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
                     disabled={loginMutation.isPending}
                   >
                     {loginMutation.isPending ? (
@@ -483,13 +575,13 @@ export default function Login() {
                   </Button>
                 </form>
               ) : (
-                <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome completo</Label>
                     <Input
                       id="name"
                       placeholder="Seu nome"
-                      className="transition-all duration-300 focus:shadow-md focus:shadow-primary/20"
+                      className={glassInputClass}
                       {...registerForm.register("name")}
                     />
                     {registerForm.formState.errors.name && (
@@ -502,7 +594,7 @@ export default function Login() {
                       id="email"
                       type="email"
                       placeholder="seu@email.com"
-                      className="transition-all duration-300 focus:shadow-md focus:shadow-primary/20"
+                      className={glassInputClass}
                       {...registerForm.register("email")}
                     />
                     {registerForm.formState.errors.email && (
@@ -516,13 +608,13 @@ export default function Login() {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pr-10 transition-all duration-300 focus:shadow-md focus:shadow-primary/20"
+                        className={`${glassInputClass} pr-10`}
                         {...registerForm.register("password")}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-umber/70 transition-colors hover:text-espresso"
                       >
                         {showPassword ? (
                           <EyeOff className="w-4 h-4" />
@@ -541,7 +633,7 @@ export default function Login() {
                       id="confirmPassword"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="transition-all duration-300 focus:shadow-md focus:shadow-primary/20"
+                      className={glassInputClass}
                       {...registerForm.register("confirmPassword")}
                     />
                     {registerForm.formState.errors.confirmPassword && (
@@ -550,7 +642,7 @@ export default function Login() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full h-11 mt-2 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
+                    className="mt-1 h-10 w-full transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
                     disabled={registerMutation.isPending}
                   >
                     {registerMutation.isPending ? (
@@ -567,13 +659,13 @@ export default function Login() {
 
               <SocialButtons />
 
-              <div className="mt-6 text-center text-sm text-muted-foreground">
+              <div className="mt-4 text-center text-sm text-white/70">
                 {mode === "login" ? (
                   <>
                     Não tem conta?{" "}
                     <button
                       onClick={() => setMode("register")}
-                      className="text-primary hover:underline font-medium transition-colors"
+                      className="font-medium text-champagne transition-colors hover:text-white hover:underline"
                     >
                       Criar agora
                     </button>
@@ -583,7 +675,7 @@ export default function Login() {
                     Já tem conta?{" "}
                     <button
                       onClick={() => setMode("login")}
-                      className="text-primary hover:underline font-medium transition-colors"
+                      className="font-medium text-champagne transition-colors hover:text-white hover:underline"
                     >
                       Entrar
                     </button>
@@ -594,7 +686,7 @@ export default function Login() {
           </Card>
           <nav
             aria-label="Links legais"
-            className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
+            className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-white/65"
           >
             <Link href="/politica-de-privacidade" className="transition-colors hover:text-foreground hover:underline">
               Política de Privacidade

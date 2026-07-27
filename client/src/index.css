@@ -300,6 +300,40 @@
   .dark .status-accent-pagamento { color: oklch(0.82 0.12 60); }
   .dark .status-accent-concluido { color: oklch(0.78 0.02 30); }
 
+  @keyframes login-clock-hour-turn {
+    to { transform: translateX(-50%) rotate(360deg); }
+  }
+  @keyframes login-clock-minute-turn {
+    to { transform: translateX(-50%) rotate(360deg); }
+  }
+  @keyframes login-clock-second-turn {
+    to { transform: translateX(-50%) rotate(360deg); }
+  }
+  @keyframes login-date-tick {
+    from { opacity: 0; transform: translateY(0.35rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-clock-hour,
+  .login-clock-minute,
+  .login-clock-second {
+    transform: translateX(-50%);
+    transform-origin: 50% 100%;
+  }
+  .login-clock-hour { animation: login-clock-hour-turn 48s linear infinite; }
+  .login-clock-minute { animation: login-clock-minute-turn 12s linear infinite; }
+  .login-clock-second { animation: login-clock-second-turn 6s linear infinite; }
+  .login-date-tick { animation: login-date-tick 700ms ease-out; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .login-clock-hour,
+    .login-clock-minute,
+    .login-clock-second,
+    .login-date-tick {
+      animation: none;
+    }
+  }
+
   /* Gradient text */
   .gradient-text {
     background: linear-gradient(135deg, var(--drf-gold-light), var(--drf-gold-dark));

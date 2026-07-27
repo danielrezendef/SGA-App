@@ -49,7 +49,7 @@ export default function Agendamentos() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 15;
 
   // Modals
   const [showCreate, setShowCreate] = useState(false);
@@ -107,8 +107,8 @@ export default function Agendamentos() {
       </div>
 
       {/* Filters */}
-      <Card className="border-border/50">
-        <CardContent className="p-4">
+      <Card className="gap-0 border-border/50 py-0">
+        <CardContent className="p-2.5">
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Search */}
             <div className="flex gap-2 flex-1">
@@ -165,7 +165,7 @@ export default function Agendamentos() {
       </Card>
 
       {/* Table */}
-      <Card className="border-border/50">
+      <Card className="gap-0 overflow-hidden border-border/50 py-0">
         {isLoading ? (
           <CardContent className="p-4 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -187,12 +187,12 @@ export default function Agendamentos() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/50">
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">Agendamento</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">Data & Hora</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">Local</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">Valor</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">Status</th>
-                    <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">Ações</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Agendamento</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Data & Hora</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Local</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Valor</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Status</th>
+                    <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -201,13 +201,13 @@ export default function Agendamentos() {
                       key={ag.id}
                       className="border-b border-border/30 hover:bg-accent/20 transition-colors group"
                     >
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-2.5">
                         <div>
                           <p className="font-semibold text-sm">{ag.descricao}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">#{ag.id}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-2.5">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-sm flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
@@ -219,18 +219,18 @@ export default function Agendamentos() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 max-w-[200px]">
+                      <td className="px-4 py-2.5 max-w-[200px]">
                         <span className="text-sm text-muted-foreground truncate block" title={ag.enderecoCerimonia}>
                           {ag.enderecoCerimonia}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-2.5">
                         <span className="text-sm font-medium">{formatCurrency(ag.valorServico)}</span>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-2.5">
                         <StatusBadge status={ag.status} />
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
@@ -314,7 +314,7 @@ export default function Agendamentos() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="p-4 border-t border-border/50 flex items-center justify-between">
+              <div className="p-3 border-t border-border/50 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
                   Página {page} de {totalPages}
                 </p>
