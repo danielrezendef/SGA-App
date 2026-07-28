@@ -470,21 +470,6 @@ const cobrancasRouter = router({
       const gerarContratoAutomaticamente = Boolean(usuario?.gerarContratoAutomaticamente);
       const cobranca = await createCobranca(input as any, gerarContratoAutomaticamente ? "confirmado" : "pagamento");
 
-      if (gerarContratoAutomaticamente) {
-        await createContrato({
-          userId: ctx.user.id,
-          nomeCompleto: input.nomeResponsavel,
-          cpf: input.cpf,
-          cep: input.cep,
-          rua: input.rua,
-          numero: input.numero,
-          complemento: input.complemento,
-          bairro: input.bairro,
-          cidade: input.cidade,
-          estado: input.estado,
-        });
-      }
-
       let googleCalendarSync: "synced" | "skipped" | "failed" = "skipped";
       try {
         const syncResult = await syncAgendamentoToGoogleCalendar(ag);

@@ -320,6 +320,68 @@ describe("cobrancas.create", () => {
       expect.objectContaining({ agendamentoId: 1, formaPagamento: "pix" }),
       "pagamento"
     );
+    expect(db.createContrato).not.toHaveBeenCalled();
+  });
+
+  it("does not register the customer as a contractor when automatic contract is enabled", async () => {
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({
+      id: 1,
+      userId: 1,
+      descricao: "Casamento Ana e Joao",
+      dataEvento: new Date(),
+      horario: "16:00:00",
+      enderecoCerimonia: "Igreja",
+      valorServico: "5000.00",
+      status: "orcamento",
+      observacoes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.getCobrancaByAgendamentoId).mockResolvedValueOnce(undefined);
+    vi.mocked(db.getUserById).mockResolvedValue({
+      ...makeCtx({ id: 1 }).user!,
+      gerarContratoAutomaticamente: true,
+    });
+    vi.mocked(db.createCobranca).mockResolvedValue({
+      id: 1,
+      agendamentoId: 1,
+      nomeResponsavel: "Cliente da Silva",
+      cpf: "123.456.789-00",
+      cep: "35680-000",
+      rua: "Rua A",
+      numero: "123",
+      complemento: null,
+      bairro: "Centro",
+      cidade: "Itauna",
+      estado: "MG",
+      valor: "5000.00",
+      condicaoPagamento: "50% entrada",
+      formaPagamento: "pix",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
+    await caller.cobrancas.create({
+      agendamentoId: 1,
+      nomeResponsavel: "Cliente da Silva",
+      cpf: "123.456.789-00",
+      cep: "35680-000",
+      rua: "Rua A",
+      numero: "123",
+      bairro: "Centro",
+      cidade: "Itauna",
+      estado: "MG",
+      valor: "5000.00",
+      condicaoPagamento: "50% entrada",
+      formaPagamento: "pix",
+    });
+
+    expect(db.createCobranca).toHaveBeenCalledWith(
+      expect.objectContaining({ nomeResponsavel: "Cliente da Silva" }),
+      "confirmado"
+    );
+    expect(db.createContrato).not.toHaveBeenCalled();
   });
 });
 
