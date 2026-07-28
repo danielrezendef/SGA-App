@@ -45,7 +45,7 @@ export default function Agendamentos() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("em_andamento");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [page, setPage] = useState(1);
@@ -57,7 +57,8 @@ export default function Agendamentos() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const queryInput = useMemo(() => ({
-    status: statusFilter !== "all" ? statusFilter as any : undefined,
+    status: statusFilter !== "all" && statusFilter !== "em_andamento" ? statusFilter as any : undefined,
+    excluirConcluidos: statusFilter === "em_andamento" || undefined,
     descricao: search && search ? search : undefined,
     dataInicio: dataInicio || undefined,
     dataFim: dataFim || undefined,
@@ -81,13 +82,13 @@ export default function Agendamentos() {
 
   const clearFilters = () => {
     setSearch("");
-    setStatusFilter("all");
+    setStatusFilter("em_andamento");
     setDataInicio("");
     setDataFim("");
     setPage(1);
   };
 
-  const hasFilters = search || statusFilter !== "all" || dataInicio || dataFim;
+  const hasFilters = search || statusFilter !== "em_andamento" || dataInicio || dataFim;
 
   return (
     <div className="space-y-5 page-enter">
@@ -130,6 +131,7 @@ export default function Agendamentos() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="em_andamento">Em andamento</SelectItem>
                 <SelectItem value="orcamento">Orçamento</SelectItem>
                 <SelectItem value="confirmado">Confirmado</SelectItem>
                 <SelectItem value="pagamento">Pagamento</SelectItem>
@@ -355,7 +357,10 @@ export default function Agendamentos() {
         open={!!editItem}
         agendamento={editItem}
         onClose={() => setEditItem(null)}
-        onSuccess={() => utils.agendamentos.list.invalidate()}
+        onSuccess={() => {
+          utils.agendamentos.list.invalidate();
+          utils.dashboard.stats.invalidate();
+        }}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>

@@ -35,7 +35,7 @@ function formatCurrency(value: number) {
 }
 
 export default function Dashboard() {
-  const { user, isAdmin } = useAppAuth();
+  const { user } = useAppAuth();
   const { data: stats, isLoading } = trpc.dashboard.stats.useQuery();
   const [, navigate] = useLocation();
 
@@ -169,6 +169,7 @@ export default function Dashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip
+                    cursor={false}
                     contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: "12px" }}
                     formatter={(v) => [v, "Agendamentos"]}
                   />

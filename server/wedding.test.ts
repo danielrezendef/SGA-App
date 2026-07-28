@@ -165,6 +165,20 @@ describe("agendamentos.list", () => {
     const caller = appRouter.createCaller(makeCtx());
     await expect(caller.agendamentos.list({})).rejects.toThrow();
   });
+
+  it("forwards the filter that excludes completed appointments", async () => {
+    vi.mocked(db.listAgendamentos).mockResolvedValue({ items: [], total: 0 });
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
+    await caller.agendamentos.list({ excluirConcluidos: true });
+
+    expect(db.listAgendamentos).toHaveBeenCalledWith({
+      excluirConcluidos: true,
+      page: 1,
+      pageSize: 10,
+      userId: 1,
+    });
+  });
 });
 
 describe("agendamentos.create", () => {
@@ -196,10 +210,101 @@ describe("agendamentos.create", () => {
     expect(result?.status).toBe("orcamento");
     expect(result?.descricao).toBe("Casamento Carla e Pedro");
   });
+
+  it("rejects a non-numeric service value", async () => {
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
+
+    await expect(caller.agendamentos.create({
+      descricao: "Casamento Carla e Pedro",
+      dataEvento: "2026-08-20",
+      horario: "17:00",
+      enderecoCerimonia: "Fazenda Boa Vista",
+      valorServico: "R$ 8.000,00",
+    })).rejects.toThrow("Valor do serviço deve conter somente números");
+  });
+});
+
+describe("agendamentos.update", () => {
+  const existingAgendamento = {
+    id: 1,
+    userId: 1,
+    descricao: "Casamento Carla e Pedro",
+    dataEvento: new Date("2026-08-20"),
+    horario: "17:00:00",
+    enderecoCerimonia: "Fazenda Boa Vista",
+    valorServico: "8000.00",
+    status: "orcamento" as const,
+    observacoes: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it("updates the status sent by the edit modal used in list and detail pages", async () => {
+    const updatedAgendamento = { ...existingAgendamento, status: "confirmado" as const };
+    vi.mocked(db.getAgendamentoById).mockResolvedValue(existingAgendamento);
+    vi.mocked(db.updateAgendamento).mockResolvedValue(updatedAgendamento);
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
+    const result = await caller.agendamentos.update({
+      id: 1,
+      descricao: existingAgendamento.descricao,
+      dataEvento: "2026-08-20",
+      horario: "17:00",
+      enderecoCerimonia: existingAgendamento.enderecoCerimonia,
+      valorServico: existingAgendamento.valorServico,
+      status: "confirmado",
+      observacoes: "Atualizado pelo modal",
+    });
+
+    expect(db.updateAgendamento).toHaveBeenCalledWith(1, {
+      descricao: existingAgendamento.descricao,
+      dataEvento: "2026-08-20",
+      horario: "17:00",
+      enderecoCerimonia: existingAgendamento.enderecoCerimonia,
+      valorServico: existingAgendamento.valorServico,
+      status: "confirmado",
+      observacoes: "Atualizado pelo modal",
+    });
+    expect(result?.status).toBe("confirmado");
+    expect(googleCalendar.syncAgendamentoToGoogleCalendar).toHaveBeenCalledWith(updatedAgendamento);
+  });
+
+  it("does not allow editing another user's appointment", async () => {
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({ ...existingAgendamento, userId: 2 });
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
+
+    await expect(caller.agendamentos.update({
+      id: 1,
+      status: "concluido",
+    })).rejects.toThrow();
+    expect(db.updateAgendamento).not.toHaveBeenCalled();
+  });
 });
 
 describe("agendamentos.delete", () => {
-  it("allows admin to delete agendamento", async () => {
+  it.each(["user", "admin"] as const)("allows %s to delete their own appointment", async (role) => {
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({
+      id: 1,
+      userId: 1,
+      descricao: "Test",
+      dataEvento: new Date(),
+      horario: "10:00:00",
+      enderecoCerimonia: "Test",
+      valorServico: "1000.00",
+      status: "orcamento",
+      observacoes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.deleteAgendamento).mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role }));
+    const result = await caller.agendamentos.delete({ id: 1 });
+    expect(result.success).toBe(true);
+  });
+
+  it.each(["user", "admin"] as const)("forbids %s from deleting another user's appointment", async (role) => {
     vi.mocked(db.getAgendamentoById).mockResolvedValue({
       id: 1,
       userId: 2,
@@ -213,21 +318,50 @@ describe("agendamentos.delete", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    vi.mocked(db.deleteAgendamento).mockResolvedValue(undefined);
 
-    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "admin" }));
-    const result = await caller.agendamentos.delete({ id: 1 });
-    expect(result.success).toBe(true);
-  });
-
-  it("forbids non-admin from deleting", async () => {
-    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role }));
     await expect(caller.agendamentos.delete({ id: 1 })).rejects.toThrow();
+    expect(db.deleteAgendamento).not.toHaveBeenCalled();
   });
 });
 
 describe("agendamentos.updateStatus", () => {
-  it("allows admin to mark agendamento as concluido", async () => {
+  it.each(["user", "admin"] as const)("allows %s to change the status of their own appointment", async (role) => {
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({
+      id: 1,
+      userId: 1,
+      descricao: "Casamento concluído",
+      dataEvento: new Date(),
+      horario: "10:00:00",
+      enderecoCerimonia: "Igreja",
+      valorServico: "1000.00",
+      status: "pagamento",
+      observacoes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.updateAgendamento).mockResolvedValue({
+      id: 1,
+      userId: 1,
+      descricao: "Casamento concluído",
+      dataEvento: new Date(),
+      horario: "10:00:00",
+      enderecoCerimonia: "Igreja",
+      valorServico: "1000.00",
+      status: "concluido",
+      observacoes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role }));
+    const result = await caller.agendamentos.updateStatus({ id: 1, status: "concluido" });
+
+    expect(db.updateAgendamento).toHaveBeenCalledWith(1, { status: "concluido" });
+    expect(result?.status).toBe("concluido");
+  });
+
+  it.each(["user", "admin"] as const)("forbids %s from changing another user's appointment status", async (role) => {
     vi.mocked(db.getAgendamentoById).mockResolvedValue({
       id: 1,
       userId: 2,
@@ -241,25 +375,10 @@ describe("agendamentos.updateStatus", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    vi.mocked(db.updateAgendamento).mockResolvedValue({
-      id: 1,
-      userId: 2,
-      descricao: "Casamento concluído",
-      dataEvento: new Date(),
-      horario: "10:00:00",
-      enderecoCerimonia: "Igreja",
-      valorServico: "1000.00",
-      status: "concluido",
-      observacoes: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
 
-    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "admin" }));
-    const result = await caller.agendamentos.updateStatus({ id: 1, status: "concluido" });
-
-    expect(db.updateAgendamento).toHaveBeenCalledWith(1, { status: "concluido" });
-    expect(result?.status).toBe("concluido");
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role }));
+    await expect(caller.agendamentos.updateStatus({ id: 1, status: "concluido" })).rejects.toThrow();
+    expect(db.updateAgendamento).not.toHaveBeenCalled();
   });
 });
 
@@ -386,6 +505,32 @@ describe("cobrancas.create", () => {
 });
 
 // ─── Dashboard tests ──────────────────────────────────────────────────────────
+describe("users administration", () => {
+  it("allows administrators to list, change the role of, and delete users", async () => {
+    vi.mocked(db.listUsers).mockResolvedValue([]);
+
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "admin" }));
+    await expect(caller.users.list()).resolves.toEqual([]);
+    await expect(caller.users.updateRole({ userId: 2, role: "admin" })).resolves.toEqual({ success: true });
+    await expect(caller.users.delete({ userId: 2 })).resolves.toEqual({ success: true });
+
+    expect(db.updateUserRole).toHaveBeenCalledWith(2, "admin");
+    expect(db.deleteUser).toHaveBeenCalledWith(2);
+  });
+
+  it("forbids regular users from managing users", async () => {
+    const caller = appRouter.createCaller(makeCtx({ id: 1, role: "user" }));
+
+    await expect(caller.users.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.users.updateRole({ userId: 2, role: "admin" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.users.delete({ userId: 2 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    expect(db.listUsers).not.toHaveBeenCalled();
+    expect(db.updateUserRole).not.toHaveBeenCalled();
+    expect(db.deleteUser).not.toHaveBeenCalled();
+  });
+});
+
 describe("dashboard.stats", () => {
   it("returns stats for authenticated user", async () => {
     vi.mocked(db.getDashboardStats).mockResolvedValue({

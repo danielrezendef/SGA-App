@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, like, lte, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { parseDateSafe } from "../shared/dateUtils";
 import { agendamentos, cobrancas, contratos, InsertUser, users, Contrato, InsertContrato } from "../drizzle/schema";
@@ -218,6 +218,7 @@ export async function removeGoogleCalendarConnection(userId: number) {
 export type AgendamentoFilters = {
   userId?: number;
   status?: "orcamento" | "confirmado" | "pagamento" | "concluido";
+  excluirConcluidos?: boolean;
   descricao?: string;
   dataInicio?: string;
   dataFim?: string;
@@ -237,6 +238,7 @@ export async function listAgendamentos(filters: AgendamentoFilters = {}) {
   const conditions = [];
   if (filters.userId) conditions.push(eq(agendamentos.userId, filters.userId));
   if (filters.status) conditions.push(eq(agendamentos.status, filters.status));
+  if (filters.excluirConcluidos) conditions.push(ne(agendamentos.status, "concluido"));
   if (filters.descricao) conditions.push(like(agendamentos.descricao, `%${filters.descricao}%`));
   if (filters.dataInicio) {
     const startDate = parseDateSafe(filters.dataInicio);

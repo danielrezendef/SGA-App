@@ -85,7 +85,7 @@ export default function AgendamentoDetalhe() {
   const id = Number.parseInt(params.id ?? "", 10);
   const hasValidId = Number.isFinite(id) && id > 0;
   const [, navigate] = useLocation();
-  const { user, isAdmin } = useAppAuth();
+  const { user } = useAppAuth();
   const utils = trpc.useUtils();
 
   const [showEdit, setShowEdit] = useState(false);
@@ -390,21 +390,17 @@ export default function AgendamentoDetalhe() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Status atual</p>
-                {isAdmin ? (
-                  <Select value={data.status} onValueChange={handleStatusChange} disabled={isChangingStatus}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="orcamento">Orçamento</SelectItem>
-                      <SelectItem value="confirmado">Confirmado</SelectItem>
-                      <SelectItem value="pagamento">Pagamento</SelectItem>
-                      <SelectItem value="concluido">Concluído</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <StatusBadge status={data.status} />
-                )}
+                <Select value={data.status} onValueChange={handleStatusChange} disabled={isChangingStatus}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="orcamento">Orçamento</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="pagamento">Pagamento</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <Separator />
               <div>
@@ -464,7 +460,11 @@ export default function AgendamentoDetalhe() {
         open={showEdit}
         onClose={() => setShowEdit(false)}
         agendamento={data}
-        onSuccess={() => utils.agendamentos.byId.invalidate({ id })}
+        onSuccess={() => {
+          utils.agendamentos.byId.invalidate({ id });
+          utils.agendamentos.list.invalidate();
+          utils.dashboard.stats.invalidate();
+        }}
       />
 
       <CobrancaModal

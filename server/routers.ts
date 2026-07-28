@@ -294,6 +294,7 @@ const agendamentosRouter = router({
     .input(
       z.object({
         status: z.enum(["orcamento", "confirmado", "pagamento", "concluido"]).optional(),
+        excluirConcluidos: z.boolean().optional(),
         descricao: z.string().optional(),
         dataInicio: z.string().optional(),
         dataFim: z.string().optional(),
@@ -343,7 +344,7 @@ const agendamentosRouter = router({
         dataEvento: z.string().min(1, "Data do evento obrigatória"),
         horario: z.string().min(1, "Horário obrigatório"),
         enderecoCerimonia: z.string().min(1, "Endereço obrigatório"),
-        valorServico: z.string().min(1, "Valor obrigatório"),
+        valorServico: z.string().regex(/^\d+(?:\.\d{1,2})?$/, "Valor do serviço deve conter somente números"),
         observacoes: z.string().optional(),
       })
     )
@@ -364,7 +365,8 @@ const agendamentosRouter = router({
         dataEvento: z.string().optional(),
         horario: z.string().optional(),
         enderecoCerimonia: z.string().optional(),
-        valorServico: z.string().optional(),
+        valorServico: z.string().regex(/^\d+(?:\.\d{1,2})?$/, "Valor do serviço deve conter somente números").optional(),
+        status: z.enum(["orcamento", "confirmado", "pagamento", "concluido"]).optional(),
         observacoes: z.string().optional(),
       })
     )
@@ -375,11 +377,8 @@ const agendamentosRouter = router({
       if (ag.userId !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const updated = await updateAgendamento(id, {
-        ...data,
-        dataEvento: data.dataEvento, // Passa a string "YYYY-MM-DD" diretamente
-      });
-      if (updated?.googleCalendarEventId) {
+      const updated = await updateAgendamento(id, data);
+      if (updated && (data.status === "confirmado" || updated.googleCalendarEventId)) {
         try {
           await syncAgendamentoToGoogleCalendar(updated);
         } catch (error) {
@@ -389,16 +388,19 @@ const agendamentosRouter = router({
       return updated;
     }),
 
-  updateStatus: adminProcedure
+  updateStatus: protectedProcedure
     .input(
       z.object({
         id: z.number(),
         status: z.enum(["orcamento", "confirmado", "pagamento", "concluido"]),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const ag = await getAgendamentoById(input.id);
       if (!ag) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ag.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       const updated = await updateAgendamento(input.id, { status: input.status });
       if (input.status === "confirmado" && updated) {
         try {
@@ -415,7 +417,7 @@ const agendamentosRouter = router({
     .mutation(async ({ ctx, input }) => {
       const ag = await getAgendamentoById(input.id);
       if (!ag) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ag.userId !== ctx.user.id && ctx.user.role !== "admin") {
+      if (ag.userId !== ctx.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Você não tem permissão para excluir este agendamento.",

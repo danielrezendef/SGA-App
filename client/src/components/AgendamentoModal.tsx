@@ -19,12 +19,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { toISODateString } from "@shared/dateUtils";
 
+const valorServicoSchema = z
+  .string()
+  .min(1, "Valor obrigatório")
+  .regex(/^\d+(?:\.\d{1,2})?$/, "Informe somente números, com até 2 casas decimais");
+
 const schema = z.object({
   descricao: z.string().min(1, "Descrição do evento obrigatória"),
   dataEvento: z.string().min(1, "Data obrigatória"),
   horario: z.string().min(1, "Horário obrigatório"),
   enderecoCerimonia: z.string().min(1, "Endereço obrigatório"),
-  valorServico: z.string().min(1, "Valor obrigatório"),
+  valorServico: valorServicoSchema,
   status: z.enum(["orcamento", "confirmado", "pagamento", "concluido"]).optional(),
   observacoes: z.string().optional(),
 });
@@ -41,6 +46,12 @@ type Props = {
 
 function toDateInputValue(dataEvento: unknown): string {
   return toISODateString(dataEvento as any);
+}
+
+function sanitizeValorServico(value: string): string {
+  const [inteiro = "", ...decimais] = value.replace(",", ".").replace(/[^\d.]/g, "").split(".");
+  const decimal = decimais.join("").slice(0, 2);
+  return decimais.length > 0 ? `${inteiro}.${decimal}` : inteiro;
 }
 
 export default function AgendamentoModal({ open, onClose, onSuccess, agendamento, dataInicial }: Props) {
@@ -151,7 +162,15 @@ export default function AgendamentoModal({ open, onClose, onSuccess, agendamento
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="valorServico">Valor do Serviço *</Label>
-              <Input id="valorServico" placeholder="Ex: 3500.00" {...register("valorServico")} />
+              <Input
+                id="valorServico"
+                inputMode="decimal"
+                placeholder="Ex: 3500.00"
+                {...register("valorServico")}
+                onInput={(event) => {
+                  event.currentTarget.value = sanitizeValorServico(event.currentTarget.value);
+                }}
+              />
               {errors.valorServico && <p className="text-xs text-destructive">{errors.valorServico.message}</p>}
             </div>
             {isEdit && (
