@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_MAX_ATTEMPTS = 12;
 const DEFAULT_RETRY_DELAY_MS = 5_000;
@@ -26,11 +27,13 @@ function wait(milliseconds) {
 }
 
 function runMigrationOnce() {
-  const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const drizzleKitPath = fileURLToPath(
+    new URL("../node_modules/drizzle-kit/bin.cjs", import.meta.url)
+  );
 
   return new Promise(resolve => {
     let output = "";
-    const migration = spawn(command, ["exec", "drizzle-kit", "migrate"], {
+    const migration = spawn(process.execPath, [drizzleKitPath, "migrate"], {
       env: process.env,
       stdio: ["inherit", "pipe", "pipe"],
     });

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import AgendamentoModal from "@/components/AgendamentoModal";
 import { formatDateSafe, toISODateString } from "@shared/dateUtils";
-import StatusBadge, { getStatusAccentClass, getStatusFillClass } from "@/components/StatusBadge";
+import StatusBadge, { getStatusAccentClass, getStatusClass, getStatusFillClass } from "@/components/StatusBadge";
 
 type ViewType = "month" | "week" | "day";
 
@@ -158,11 +158,7 @@ export default function Calendario() {
               return (
               <div
                 key={ev.id}
-                className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded border truncate font-semibold ${
-                  pastEvent
-                    ? "bg-foreground/15 text-foreground/60 border-foreground/10"
-                    : "bg-primary/10 text-primary border-primary/10"
-                }`}
+                className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded truncate font-semibold ${getStatusClass(ev.status)} ${pastEvent ? "opacity-70" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/agendamentos/${ev.id}`);
@@ -219,18 +215,14 @@ export default function Calendario() {
                   return (
                   <div
                     key={ev.id}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer group ${
-                      pastEvent
-                        ? "border-border bg-muted/70 text-muted-foreground hover:border-foreground/30 hover:bg-muted"
-                        : "border-border/50 bg-card hover:border-primary/40 hover:shadow-md"
-                    }`}
+                    className={`p-3 rounded-xl transition-all cursor-pointer group hover:shadow-md ${getStatusClass(ev.status)} ${pastEvent ? "opacity-70 hover:opacity-90" : ""}`}
                     onClick={() => navigate(`/agendamentos/${ev.id}`)}
                   >
-                    <div className={`flex items-center gap-1 text-[10px] font-black mb-1 ${pastEvent ? "text-foreground/60" : "text-primary"}`}>
+                    <div className="flex items-center gap-1 text-[10px] font-black mb-1 text-inherit">
                       <Clock className="w-3 h-3" />
                       {ev.horario?.slice(0, 5)}
                     </div>
-                    <div className={`text-xs font-bold leading-tight line-clamp-2 transition-colors ${pastEvent ? "text-muted-foreground" : "group-hover:text-primary"}`}>
+                    <div className="text-xs font-bold leading-tight line-clamp-2 text-inherit">
                       {ev.descricao}
                     </div>
                   </div>

@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useAppAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
@@ -23,6 +24,7 @@ import {
   Zap,
   MapPin,
   Receipt,
+  ListMusic,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
@@ -269,6 +271,18 @@ export default function Dashboard() {
                       </span>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/agendamentos/${ev.id}/repertorio`);
+                    }}
+                  >
+                    <ListMusic className="w-3.5 h-3.5 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Repertório</span>
+                  </Button>
                   <StatusBadge status={ev.status} />
                 </div>
               ))}

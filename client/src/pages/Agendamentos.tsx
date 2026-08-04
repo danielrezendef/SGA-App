@@ -30,6 +30,7 @@ import {
   ChevronRight,
   CheckSquare,
   X,
+  ListMusic,
 } from "lucide-react";
 import { formatDateSafe } from "@shared/dateUtils";
 import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
@@ -194,6 +195,7 @@ export default function Agendamentos() {
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Local</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Valor</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Status</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Repertório</th>
                     <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-2.5">Ações</th>
                   </tr>
                 </thead>
@@ -231,6 +233,16 @@ export default function Agendamentos() {
                       </td>
                       <td className="px-4 py-2.5">
                         <StatusBadge status={ag.status} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8"
+                          onClick={() => navigate(`/agendamentos/${ag.id}/repertorio`)}
+                        >
+                          <ListMusic className="w-3.5 h-3.5 mr-1.5" /> Repertório
+                        </Button>
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -294,6 +306,9 @@ export default function Agendamentos() {
                     <StatusBadge status={ag.status} />
                   </div>
                   <div className="flex items-center gap-2 mt-3">
+                    <Button variant="outline" size="sm" className="h-8 flex-1" onClick={() => navigate(`/agendamentos/${ag.id}/repertorio`)}>
+                      <ListMusic className="w-3.5 h-3.5 mr-1.5" /> Repertório
+                    </Button>
                     <Button variant="outline" size="sm" className="h-8 flex-1" onClick={() => navigate(`/agendamentos/${ag.id}`)}>
                       <Eye className="w-3.5 h-3.5 mr-1.5" /> Ver
                     </Button>

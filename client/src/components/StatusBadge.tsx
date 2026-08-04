@@ -11,6 +11,10 @@ export function getStatusAccentClass(status: string) {
   return STATUS_CONFIG[status as Status]?.accentClassName ?? "";
 }
 
+export function getStatusClass(status: string) {
+  return STATUS_CONFIG[status as Status]?.className ?? "";
+}
+
 export function getStatusFillClass(status: string) {
   return STATUS_CONFIG[status as Status]?.fillClassName ?? "";
 }
