@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Agendamentos from "./pages/Agendamentos";
 import AgendamentoDetalhe from "./pages/AgendamentoDetalhe";
+import RepertorioAgendamento from "./pages/RepertorioAgendamento";
 import Calendario from "./pages/Calendario";
 import Usuarios from "./pages/Usuarios";
 import Perfil from "./pages/Perfil";
@@ -42,6 +43,11 @@ function Router() {
       </Route>
       <Route path="/calendario">
         <ProtectedRoute component={Calendario} />
+      </Route>
+      <Route path="/agendamentos/:id/repertorio">
+        {(params) => (
+          <ProtectedRoute component={() => <RepertorioAgendamento key={params.id} />} />
+        )}
       </Route>
       <Route path="/agendamentos/:id">
         {(params) => (

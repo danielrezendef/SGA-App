@@ -23,6 +23,7 @@ import {
   ChevronDown,
   Download,
   Loader2,
+  ListMusic,
 } from "lucide-react";
 import {
   Select,
@@ -246,9 +247,14 @@ export default function AgendamentoDetalhe() {
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">Agendamento #{data.id}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
-          <Pencil className="w-4 h-4 mr-2" /> Editar
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/agendamentos/${id}/repertorio`)}>
+            <ListMusic className="w-4 h-4 mr-2" /> Repertório
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+            <Pencil className="w-4 h-4 mr-2" /> Editar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -46,6 +46,7 @@ import {
   selectGoogleCalendar,
   syncAgendamentoToGoogleCalendar,
 } from "./googleCalendar";
+import { repertorioRouter } from "./repertorioRouter";
 
 if (!globalThis.crypto) {
   globalThis.crypto = webcrypto as Crypto;
@@ -678,6 +679,7 @@ export const appRouter = router({
   cobrancas: cobrancasRouter,
   contratos: contratosRouter,
   googleCalendar: googleCalendarRouter,
+  repertorio: repertorioRouter,
 
   dashboard: dashboardRouter,
   users: usersRouter,

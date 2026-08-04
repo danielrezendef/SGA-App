@@ -21,7 +21,9 @@ export const users = mysqlTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   profilePhoto: text("profilePhoto"), // URL da foto de perfil
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  gerarContratoAutomaticamente: boolean("gerar_contrato_automaticamente").notNull().default(false),
+  gerarContratoAutomaticamente: boolean("gerar_contrato_automaticamente")
+    .notNull()
+    .default(false),
   googleCalendarRefreshToken: text("google_calendar_refresh_token"),
   googleCalendarConnectedAt: timestamp("google_calendar_connected_at"),
   googleCalendarId: varchar("google_calendar_id", { length: 1024 }),
@@ -43,7 +45,13 @@ export const agendamentos = mysqlTable("agendamentos", {
   horario: time("horario").notNull(),
   enderecoCerimonia: text("enderecoCerimonia").notNull(),
   valorServico: decimal("valorServico", { precision: 10, scale: 2 }).notNull(),
-  status: mysqlEnum("status", ["orcamento", "confirmado", "cobranca", "pagamento", "concluido"])
+  status: mysqlEnum("status", [
+    "orcamento",
+    "confirmado",
+    "cobranca",
+    "pagamento",
+    "concluido",
+  ])
     .default("orcamento")
     .notNull(),
   observacoes: text("observacoes"),
@@ -56,6 +64,66 @@ export const agendamentos = mysqlTable("agendamentos", {
 
 export type Agendamento = typeof agendamentos.$inferSelect;
 export type InsertAgendamento = typeof agendamentos.$inferInsert;
+
+// Repertórios de agendamentos
+export const tiposMomento = mysqlTable("tipos_momento", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 64 }).notNull().unique(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  ordemPadrao: int("ordemPadrao").notNull(),
+  ativo: boolean("ativo").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const repertorios = mysqlTable("repertorios", {
+  id: int("id").autoincrement().primaryKey(),
+  agendamentoId: int("agendamentoId")
+    .notNull()
+    .unique()
+    .references(() => agendamentos.id, { onDelete: "cascade" }),
+  status: mysqlEnum("status", ["RASCUNHO", "EM_DEFINICAO", "FINALIZADO"])
+    .default("RASCUNHO")
+    .notNull(),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const momentosRepertorio = mysqlTable("momentos_repertorio", {
+  id: int("id").autoincrement().primaryKey(),
+  repertorioId: int("repertorioId")
+    .notNull()
+    .references(() => repertorios.id, { onDelete: "cascade" }),
+  tipoMomentoId: int("tipoMomentoId")
+    .notNull()
+    .references(() => tiposMomento.id),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  ordem: int("ordem").notNull(),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const musicasMomento = mysqlTable("musicas_momento", {
+  id: int("id").autoincrement().primaryKey(),
+  momentoId: int("momentoId")
+    .notNull()
+    .references(() => momentosRepertorio.id, { onDelete: "cascade" }),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  artista: varchar("artista", { length: 255 }),
+  tonalidade: varchar("tonalidade", { length: 64 }),
+  linkReferencia: text("linkReferencia"),
+  observacoes: text("observacoes"),
+  ordem: int("ordem").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TipoMomento = typeof tiposMomento.$inferSelect;
+export type Repertorio = typeof repertorios.$inferSelect;
+export type MomentoRepertorio = typeof momentosRepertorio.$inferSelect;
+export type MusicaMomento = typeof musicasMomento.$inferSelect;
 
 // ─── Cobranças ────────────────────────────────────────────────────────────────
 export const cobrancas = mysqlTable("cobrancas", {
@@ -107,4 +175,3 @@ export const contratos = mysqlTable("contratos", {
 
 export type Contrato = typeof contratos.$inferSelect;
 export type InsertContrato = typeof contratos.$inferInsert;
-
