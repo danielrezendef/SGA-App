@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Document,
   Image,
@@ -11,27 +12,56 @@ import logoImg from "@/assets/logo.png";
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    paddingTop: 32,
+    paddingRight: 40,
+    paddingBottom: 40,
+    paddingLeft: 40,
     fontFamily: "Helvetica",
     backgroundColor: "#fbf7ef",
     color: "#2b2018",
     fontSize: 10,
   },
-  logo: { width: 150, height: 70, objectFit: "contain", marginBottom: 8 },
+  headerRow: {
+    position: "relative",
+    height: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 3,
+  },
+  logo: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: 96,
+    height: 56,
+    objectFit: "contain",
+  },
+  headerTitle: {
+    width: "100%",
+    paddingHorizontal: 100,
+    textAlign: "center",
+  },
   title: {
-    fontSize: 23,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#8f6c35",
-    marginBottom: 5,
+    textAlign: "center",
   },
-  subtitle: { fontSize: 12, color: "#76572f", marginBottom: 18 },
-  eventBox: {
-    borderWidth: 1,
-    borderColor: "#e5d1a3",
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 18,
-    backgroundColor: "#fffdf8",
+  subtitle: {
+    fontSize: 12,
+    color: "#76572f",
+    marginBottom: 14,
+    textAlign: "center",
+  },
+  eventDetails: {
+    marginBottom: 15,
+    paddingHorizontal: 4,
+  },
+  notesBox: {
+    paddingTop: 8,
+    marginTop: 4,
+    marginBottom: 14,
   },
   row: { flexDirection: "row", marginBottom: 4 },
   label: { width: 75, fontWeight: "bold", color: "#76572f" },
@@ -42,17 +72,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e5d1a3",
   },
+  lastMoment: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
   momentTitle: {
     fontSize: 13,
     fontWeight: "bold",
     color: "#8f6c35",
     marginBottom: 5,
-  },
-  type: {
-    fontSize: 8,
-    color: "#76572f",
-    marginBottom: 6,
-    textTransform: "uppercase",
   },
   music: { marginLeft: 10, marginBottom: 5 },
   musicTitle: { fontSize: 10, fontWeight: "bold" },
@@ -82,10 +110,14 @@ export function PDFRepertorio({
   return (
     <Document title={`Repertório - ${agendamento.descricao}`}>
       <Page size="A4" style={styles.page} wrap>
-        <Image src={logoImg} style={styles.logo} />
-        <Text style={styles.title}>Repertório da Cerimônia</Text>
+        <View style={styles.headerRow}>
+          <Image src={logoImg} style={styles.logo} />
+          <View style={styles.headerTitle}>
+            <Text style={styles.title}>Repertório da Cerimônia</Text>
+          </View>
+        </View>
         <Text style={styles.subtitle}>{agendamento.descricao}</Text>
-        <View style={styles.eventBox}>
+        <View style={styles.eventDetails}>
           <Info
             label="Data"
             value={formatDateSafe(
@@ -100,11 +132,19 @@ export function PDFRepertorio({
           <Info label="Local" value={agendamento.enderecoCerimonia} />
         </View>
         {repertorio.momentos.map((momento: any, index: number) => (
-          <View key={momento.id} style={styles.moment} wrap={false}>
+          <View
+            key={momento.id}
+            style={[
+              styles.moment,
+              index === repertorio.momentos.length - 1
+                ? styles.lastMoment
+                : {},
+            ]}
+            wrap={false}
+          >
             <Text style={styles.momentTitle}>
               {index + 1}. {momento.nome}
             </Text>
-            <Text style={styles.type}>{momento.tipoNome}</Text>
             {momento.musicas.length ? (
               momento.musicas.map((musica: any, musicIndex: number) => (
                 <View key={musica.id} style={styles.music}>
@@ -137,7 +177,7 @@ export function PDFRepertorio({
           </View>
         ))}
         {repertorio.observacoes && (
-          <View style={styles.eventBox}>
+          <View style={styles.notesBox}>
             <Text style={styles.musicTitle}>Observações gerais</Text>
             <Text style={styles.notes}>{repertorio.observacoes}</Text>
           </View>

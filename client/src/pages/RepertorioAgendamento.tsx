@@ -17,7 +17,6 @@ import {
   Pencil,
   Plus,
   RotateCcw,
-  Save,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -107,7 +106,7 @@ export default function RepertorioAgendamento() {
   });
   const saveNotes = trpc.repertorio.atualizarObservacoes.useMutation({
     onSuccess: () => {
-      toast.success("Repertório salvo!");
+      toast.success("Observações salvas automaticamente!");
       refresh();
     },
     onError: error => toast.error(error.message),
@@ -246,10 +245,10 @@ export default function RepertorioAgendamento() {
       const link = document.createElement("a");
       const name = agendamento.descricao
         .trim()
-        .replace(/[^a-zA-Z0-9\s_-]/g, "")
-        .replace(/\s+/g, "_");
+        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+        .replace(/\s+/g, " ");
       link.href = url;
-      link.download = `Repertorio_${agendamento.id}_${name}.pdf`;
+      link.download = `Repertorio ${name}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success("PDF do repertório gerado!");
@@ -271,23 +270,6 @@ export default function RepertorioAgendamento() {
       <div className="flex flex-wrap gap-2">
         {!finalized ? (
           <>
-            <Button
-              size="sm"
-              onClick={() =>
-                saveNotes.mutate({
-                  repertorioId: repertorio.id,
-                  observacoes: observacoes || null,
-                })
-              }
-              disabled={saveNotes.isPending}
-            >
-              {saveNotes.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Salvar
-            </Button>
             <Button
               size="sm"
               variant="secondary"
@@ -360,21 +342,6 @@ export default function RepertorioAgendamento() {
         </Button>
       </div>
 
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Observações gerais</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            rows={3}
-            value={observacoes}
-            onChange={event => setObservacoes(event.target.value)}
-            disabled={finalized}
-            placeholder="Orientações gerais para o repertório..."
-          />
-        </CardContent>
-      </Card>
-
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Momentos da cerimônia</h2>
@@ -394,21 +361,18 @@ export default function RepertorioAgendamento() {
       </div>
 
       {repertorio.momentos.length ? (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {repertorio.momentos.map((momento: any, index: number) => (
-            <Card key={momento.id} className="border-border/50 overflow-hidden">
-              <CardHeader className="pb-3 bg-muted/25">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shrink-0">
+            <Card key={momento.id} className="gap-0 border-border/50 py-0 overflow-hidden">
+              <CardHeader className="px-3 py-1.5 bg-muted/25">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                  <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shrink-0">
                     {index + 1}
                   </div>
                   <div className="min-w-0 flex-1">
                     <CardTitle className="text-base break-words">
                       {momento.nome}
                     </CardTitle>
-                    <CardDescription>
-                      {momento.tipoNome} · ordem {momento.ordem}
-                    </CardDescription>
                   </div>
                   {!finalized && (
                     <div className="flex flex-wrap gap-1">
@@ -437,6 +401,16 @@ export default function RepertorioAgendamento() {
                         }
                       >
                         <ArrowDown />
+                      </IconButton>
+                      <IconButton
+                        label="Adicionar música"
+                        highlighted
+                        disabled={busy}
+                        onClick={() =>
+                          setMusicaModal({ open: true, momento, musica: null })
+                        }
+                      >
+                        <Plus />
                       </IconButton>
                       <IconButton
                         label="Editar momento"
@@ -473,17 +447,17 @@ export default function RepertorioAgendamento() {
                   )}
                 </div>
                 {momento.observacoes && (
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {momento.observacoes}
                   </p>
                 )}
               </CardHeader>
-              <CardContent className="pt-4 space-y-3">
+              <CardContent className="px-3 pt-1.5 pb-2 space-y-1.5">
                 {momento.musicas.length ? (
                   momento.musicas.map((musica: any, musicIndex: number) => (
                     <div
                       key={musica.id}
-                      className="flex items-start gap-3 rounded-lg border bg-card p-3"
+                      className="flex items-start gap-2 rounded-lg border bg-card p-2"
                     >
                       <Music2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <div className="min-w-0 flex-1">
@@ -573,23 +547,10 @@ export default function RepertorioAgendamento() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-5 text-muted-foreground">
+                  <div className="text-center py-3 text-muted-foreground">
                     <Music2 className="w-7 h-7 mx-auto mb-2 opacity-25" />
                     <p className="text-sm">Nenhuma música cadastrada</p>
                   </div>
-                )}
-                {!finalized && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    onClick={() =>
-                      setMusicaModal({ open: true, momento, musica: null })
-                    }
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar música
-                  </Button>
                 )}
               </CardContent>
             </Card>
@@ -613,6 +574,36 @@ export default function RepertorioAgendamento() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="border-border/50">
+        <CardHeader className="px-4 pt-3 pb-2">
+          <CardTitle className="text-base">Observações gerais</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <Textarea
+            rows={3}
+            value={observacoes}
+            onChange={event => setObservacoes(event.target.value)}
+            onBlur={() => {
+              if (observacoes !== (repertorio.observacoes ?? "")) {
+                saveNotes.mutate({
+                  repertorioId: repertorio.id,
+                  observacoes: observacoes || null,
+                });
+              }
+            }}
+            disabled={finalized}
+            placeholder="Orientações gerais para o repertório..."
+          />
+          {!finalized && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {saveNotes.isPending
+                ? "Salvando observações..."
+                : "As alterações são salvas automaticamente."}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <RepertorioMomentoModal
         open={momentoModal.open}
@@ -748,18 +739,24 @@ function EmptyOption({
 function IconButton({
   label,
   destructive,
+  highlighted,
   children,
   ...props
 }: React.ComponentProps<typeof Button> & {
   label: string;
   destructive?: boolean;
+  highlighted?: boolean;
 }) {
   return (
     <Button
       type="button"
       variant={destructive ? "destructive" : "ghost"}
       size="icon"
-      className="h-8 w-8 [&_svg]:w-3.5 [&_svg]:h-3.5"
+      className={`h-8 w-8 [&_svg]:w-3.5 [&_svg]:h-3.5 ${
+        highlighted
+          ? "border border-emerald-300 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900"
+          : ""
+      }`}
       aria-label={label}
       title={label}
       {...props}
