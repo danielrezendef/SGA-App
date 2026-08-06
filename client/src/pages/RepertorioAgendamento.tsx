@@ -245,6 +245,7 @@ export default function RepertorioAgendamento() {
       const link = document.createElement("a");
       const name = agendamento.descricao
         .trim()
+        .replace(/^cerim[oô]nia\s+/i, "")
         .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
         .replace(/\s+/g, " ");
       link.href = url;

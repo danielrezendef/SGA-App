@@ -7,98 +7,168 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { formatDateSafe } from "@shared/dateUtils";
 import logoImg from "@/assets/logo.png";
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 32,
-    paddingRight: 40,
-    paddingBottom: 40,
-    paddingLeft: 40,
+    paddingTop: 28,
+    paddingRight: 34,
+    paddingBottom: 36,
+    paddingLeft: 34,
     fontFamily: "Helvetica",
     backgroundColor: "#fbf7ef",
     color: "#2b2018",
-    fontSize: 10,
+    fontSize: 9,
   },
   headerRow: {
     position: "relative",
-    height: 56,
+    height: 58,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: "#d9b97c",
+    paddingBottom: 8,
+    marginBottom: 18,
   },
   logo: {
     position: "absolute",
     left: 0,
     top: 0,
-    width: 96,
-    height: 56,
+    width: 92,
+    height: 50,
     objectFit: "contain",
   },
   headerTitle: {
     width: "100%",
-    paddingHorizontal: 100,
+    paddingLeft: 100,
     textAlign: "center",
   },
   title: {
-    fontSize: 20,
     fontWeight: "bold",
-    color: "#8f6c35",
+    color: "#8f6728",
     textAlign: "center",
   },
-  subtitle: {
-    fontSize: 12,
-    color: "#76572f",
-    marginBottom: 14,
-    textAlign: "center",
+  columns: {
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
-  eventDetails: {
-    marginBottom: 15,
-    paddingHorizontal: 4,
+  column: {
+    flex: 1,
   },
-  notesBox: {
-    paddingTop: 8,
-    marginTop: 4,
-    marginBottom: 14,
+  leftColumn: {
+    paddingRight: 12,
+    borderRightWidth: 0.5,
+    borderRightColor: "#e5d1a3",
   },
-  row: { flexDirection: "row", marginBottom: 4 },
-  label: { width: 75, fontWeight: "bold", color: "#76572f" },
-  value: { flex: 1 },
+  rightColumn: {
+    paddingLeft: 12,
+  },
   moment: {
-    marginBottom: 13,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5d1a3",
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#d9b97c",
   },
-  lastMoment: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  momentTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#8f6c35",
+  momentHeading: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 5,
   },
-  music: { marginLeft: 10, marginBottom: 5 },
-  musicTitle: { fontSize: 10, fontWeight: "bold" },
-  detail: { fontSize: 9, color: "#5d4633", marginTop: 1 },
-  notes: { fontSize: 9, color: "#5d4633", marginTop: 5, fontStyle: "italic" },
+  momentNumber: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#9a702b",
+    color: "#fbf7ef",
+    fontSize: 8,
+    fontWeight: "bold",
+    textAlign: "center",
+    paddingTop: 4,
+    marginRight: 7,
+  },
+  momentTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#8f6728",
+  },
+  music: {
+    marginLeft: 25,
+    marginBottom: 4,
+  },
+  musicTitle: {
+    fontSize: 9.2,
+    fontWeight: "bold",
+  },
+  detail: {
+    fontSize: 8.2,
+    color: "#5d4633",
+    marginTop: 1,
+  },
+  notes: {
+    fontSize: 8,
+    color: "#5d4633",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+  generalNotes: {
+    marginTop: 2,
+    paddingTop: 6,
+  },
   footer: {
     position: "absolute",
-    left: 40,
-    right: 40,
-    bottom: 24,
-    borderTopWidth: 1,
-    borderTopColor: "#e5d1a3",
-    paddingTop: 6,
+    left: 34,
+    right: 34,
+    bottom: 20,
     textAlign: "center",
-    color: "#8f6c35",
-    fontSize: 8,
+    color: "#8f6728",
+    fontSize: 7.5,
   },
 });
+
+function appointmentName(description: string) {
+  return description.trim().replace(/^cerim[oô]nia\s+/i, "");
+}
+
+function momentWeight(moment: any) {
+  const songs = momentoSongs(moment);
+  const songNotes = songs.reduce(
+    (weight: number, music: any) => weight + (music.observacoes ? 0.8 : 0),
+    0
+  );
+
+  return 2.5 + songs.length * 2 + songNotes + (moment.observacoes ? 1 : 0);
+}
+
+function momentoSongs(moment: any): any[] {
+  return Array.isArray(moment.musicas) ? moment.musicas : [];
+}
+
+function splitMoments(moments: any[]) {
+  if (moments.length < 2) return [moments, []] as const;
+
+  const weights = moments.map(momentWeight);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let leftWeight = 0;
+  let splitIndex = 1;
+  let smallestDifference = Number.POSITIVE_INFINITY;
+
+  for (let index = 1; index < moments.length; index += 1) {
+    leftWeight += weights[index - 1];
+    const difference = Math.abs(total - leftWeight * 2);
+    if (difference < smallestDifference) {
+      smallestDifference = difference;
+      splitIndex = index;
+    }
+  }
+
+  return [moments.slice(0, splitIndex), moments.slice(splitIndex)] as const;
+}
+
+function titleFontSize(title: string) {
+  return Math.max(7, Math.min(20, 680 / Math.max(title.length, 1)));
+}
 
 export function PDFRepertorio({
   agendamento,
@@ -107,94 +177,103 @@ export function PDFRepertorio({
   agendamento: any;
   repertorio: any;
 }) {
+  const title = `Repertório ${appointmentName(agendamento.descricao ?? "")}`;
+  const moments = Array.isArray(repertorio.momentos)
+    ? repertorio.momentos
+    : [];
+  const [leftMoments, rightMoments] = splitMoments(moments);
+
   return (
-    <Document title={`Repertório - ${agendamento.descricao}`}>
-      <Page size="A4" style={styles.page} wrap>
+    <Document title={title}>
+      <Page size="A4" style={styles.page} wrap={false}>
         <View style={styles.headerRow}>
           <Image src={logoImg} style={styles.logo} />
           <View style={styles.headerTitle}>
-            <Text style={styles.title}>Repertório da Cerimônia</Text>
-          </View>
-        </View>
-        <Text style={styles.subtitle}>{agendamento.descricao}</Text>
-        <View style={styles.eventDetails}>
-          <Info
-            label="Data"
-            value={formatDateSafe(
-              agendamento.dataEvento,
-              "dd 'de' MMMM 'de' yyyy"
-            )}
-          />
-          <Info
-            label="Horário"
-            value={agendamento.horario?.slice(0, 5) ?? "-"}
-          />
-          <Info label="Local" value={agendamento.enderecoCerimonia} />
-        </View>
-        {repertorio.momentos.map((momento: any, index: number) => (
-          <View
-            key={momento.id}
-            style={[
-              styles.moment,
-              index === repertorio.momentos.length - 1
-                ? styles.lastMoment
-                : {},
-            ]}
-            wrap={false}
-          >
-            <Text style={styles.momentTitle}>
-              {index + 1}. {momento.nome}
+            <Text style={[styles.title, { fontSize: titleFontSize(title) }]}>
+              {title}
             </Text>
-            {momento.musicas.length ? (
-              momento.musicas.map((musica: any, musicIndex: number) => (
-                <View key={musica.id} style={styles.music}>
-                  <Text style={styles.musicTitle}>
-                    {musicIndex + 1}. {musica.titulo}
-                  </Text>
-                  {(musica.artista || musica.tonalidade) && (
-                    <Text style={styles.detail}>
-                      {[
-                        musica.artista,
-                        musica.tonalidade && `Tom: ${musica.tonalidade}`,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </Text>
-                  )}
-                  {musica.observacoes && (
-                    <Text style={styles.notes}>{musica.observacoes}</Text>
-                  )}
-                </View>
-              ))
-            ) : (
-              <Text style={styles.detail}>Nenhuma música definida.</Text>
-            )}
-            {momento.observacoes && (
-              <Text style={styles.notes}>
-                Observações: {momento.observacoes}
-              </Text>
+          </View>
+        </View>
+
+        <View style={styles.columns}>
+          <View style={[styles.column, styles.leftColumn]}>
+            {leftMoments.map((moment: any, index: number) => (
+              <Moment
+                key={moment.id}
+                moment={moment}
+                number={index + 1}
+              />
+            ))}
+          </View>
+
+          <View style={[styles.column, styles.rightColumn]}>
+            {rightMoments.map((moment: any, index: number) => (
+              <Moment
+                key={moment.id}
+                moment={moment}
+                number={leftMoments.length + index + 1}
+              />
+            ))}
+
+            {repertorio.observacoes && (
+              <View style={styles.generalNotes}>
+                <Text style={styles.musicTitle}>Observações gerais</Text>
+                <Text style={styles.notes}>{repertorio.observacoes}</Text>
+              </View>
             )}
           </View>
-        ))}
-        {repertorio.observacoes && (
-          <View style={styles.notesBox}>
-            <Text style={styles.musicTitle}>Observações gerais</Text>
-            <Text style={styles.notes}>{repertorio.observacoes}</Text>
-          </View>
-        )}
+        </View>
+
         <Text style={styles.footer} fixed>
-          SGA App · Repertório da cerimônia · Página{" "}
+          SGA App · Repertório
         </Text>
       </Page>
     </Document>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Moment({ moment, number }: { moment: any; number: number }) {
+  const songs = momentoSongs(moment);
+
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
+    <View style={styles.moment} wrap={false}>
+      <View style={styles.momentHeading}>
+        <Text style={styles.momentNumber}>{number}</Text>
+        <Text style={styles.momentTitle}>{moment.nome}</Text>
+      </View>
+
+      {songs.length ? (
+        songs.map((music: any, musicIndex: number) => (
+          <View key={music.id} style={styles.music}>
+            <Text style={styles.musicTitle}>
+              {musicIndex + 1}. {music.titulo}
+            </Text>
+            {(music.artista || music.tonalidade) && (
+              <Text style={styles.detail}>
+                {[
+                  music.artista,
+                  music.tonalidade && `Tom: ${music.tonalidade}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+            )}
+            {music.observacoes && (
+              <Text style={styles.notes}>{music.observacoes}</Text>
+            )}
+          </View>
+        ))
+      ) : (
+        <Text style={[styles.detail, { marginLeft: 25 }]}>
+          Nenhuma música definida.
+        </Text>
+      )}
+
+      {moment.observacoes && (
+        <Text style={[styles.notes, { marginLeft: 25 }]}>
+          Observações: {moment.observacoes}
+        </Text>
+      )}
     </View>
   );
 }
