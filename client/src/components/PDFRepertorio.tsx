@@ -18,10 +18,9 @@ const styles = StyleSheet.create({
   page: {
     width: A4_PAGE_SIZE.width,
     height: A4_PAGE_SIZE.height,
-    overflow: "hidden",
-    paddingTop: 28,
+    paddingTop: 22,
     paddingRight: 34,
-    paddingBottom: 36,
+    paddingBottom: 32,
     paddingLeft: 34,
     fontFamily: "Helvetica",
     backgroundColor: "#fbf7ef",
@@ -30,21 +29,21 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     position: "relative",
-    height: 58,
+    height: 50,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#d9b97c",
-    paddingBottom: 8,
-    marginBottom: 18,
+    paddingBottom: 6,
+    marginBottom: 10,
   },
   logo: {
     position: "absolute",
     left: 0,
     top: 0,
-    width: 92,
-    height: 50,
+    width: 82,
+    height: 44,
     objectFit: "contain",
   },
   headerTitle: {
@@ -56,72 +55,60 @@ const styles = StyleSheet.create({
     color: "#8f6728",
     textAlign: "center",
   },
-  columns: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  column: {
-    flex: 1,
-  },
-  leftColumn: {
-    paddingRight: 12,
-    borderRightWidth: 0.5,
-    borderRightColor: "#e5d1a3",
-  },
-  rightColumn: {
-    paddingLeft: 12,
+  singleColumn: {
+    width: "100%",
   },
   moment: {
-    marginBottom: 10,
-    paddingBottom: 8,
+    marginBottom: 6,
+    paddingBottom: 5,
     borderBottomWidth: 0.5,
     borderBottomColor: "#d9b97c",
   },
   momentHeading: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: 3,
   },
   momentNumber: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: "#9a702b",
     color: "#fbf7ef",
-    fontSize: 8,
+    fontSize: 7.5,
     fontWeight: "bold",
     textAlign: "center",
-    paddingTop: 4,
+    paddingTop: 3,
     marginRight: 7,
   },
   momentTitle: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "bold",
     color: "#8f6728",
   },
   music: {
-    marginLeft: 25,
-    marginBottom: 4,
+    marginLeft: 23,
+    marginBottom: 2.5,
   },
   musicTitle: {
-    fontSize: 9.2,
+    fontSize: 9,
     fontWeight: "bold",
   },
   detail: {
-    fontSize: 8.2,
+    fontSize: 8,
     color: "#5d4633",
     marginTop: 1,
   },
   notes: {
-    fontSize: 8,
+    fontSize: 7.8,
     color: "#5d4633",
     marginTop: 2,
     fontStyle: "italic",
   },
   generalNotes: {
-    marginTop: 2,
-    paddingTop: 6,
+    marginTop: 1,
+    paddingTop: 3,
   },
   footer: {
     position: "absolute",
@@ -138,39 +125,8 @@ function appointmentName(description: string) {
   return description.trim().replace(/^cerim[oô]nia\s+/i, "");
 }
 
-function momentWeight(moment: any) {
-  const songs = momentoSongs(moment);
-  const songNotes = songs.reduce(
-    (weight: number, music: any) => weight + (music.observacoes ? 0.8 : 0),
-    0
-  );
-
-  return 2.5 + songs.length * 2 + songNotes + (moment.observacoes ? 1 : 0);
-}
-
 function momentoSongs(moment: any): any[] {
   return Array.isArray(moment.musicas) ? moment.musicas : [];
-}
-
-function splitMoments(moments: any[]) {
-  if (moments.length < 2) return [moments, []] as const;
-
-  const weights = moments.map(momentWeight);
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
-  let leftWeight = 0;
-  let splitIndex = 1;
-  let smallestDifference = Number.POSITIVE_INFINITY;
-
-  for (let index = 1; index < moments.length; index += 1) {
-    leftWeight += weights[index - 1];
-    const difference = Math.abs(total - leftWeight * 2);
-    if (difference < smallestDifference) {
-      smallestDifference = difference;
-      splitIndex = index;
-    }
-  }
-
-  return [moments.slice(0, splitIndex), moments.slice(splitIndex)] as const;
 }
 
 function titleFontSize(title: string) {
@@ -188,7 +144,6 @@ export function PDFRepertorio({
   const moments = Array.isArray(repertorio.momentos)
     ? repertorio.momentos
     : [];
-  const [leftMoments, rightMoments] = splitMoments(moments);
 
   return (
     <Document title={title}>
@@ -196,7 +151,7 @@ export function PDFRepertorio({
         size={A4_PAGE_SIZE}
         orientation="portrait"
         style={styles.page}
-        wrap={false}
+        wrap
       >
         <View style={styles.headerRow}>
           <Image src={logoImg} style={styles.logo} />
@@ -207,33 +162,17 @@ export function PDFRepertorio({
           </View>
         </View>
 
-        <View style={styles.columns}>
-          <View style={[styles.column, styles.leftColumn]}>
-            {leftMoments.map((moment: any, index: number) => (
-              <Moment
-                key={moment.id}
-                moment={moment}
-                number={index + 1}
-              />
-            ))}
-          </View>
+        <View style={styles.singleColumn} wrap={false}>
+          {moments.map((moment: any, index: number) => (
+            <Moment key={moment.id} moment={moment} number={index + 1} />
+          ))}
 
-          <View style={[styles.column, styles.rightColumn]}>
-            {rightMoments.map((moment: any, index: number) => (
-              <Moment
-                key={moment.id}
-                moment={moment}
-                number={leftMoments.length + index + 1}
-              />
-            ))}
-
-            {repertorio.observacoes && (
-              <View style={styles.generalNotes}>
-                <Text style={styles.musicTitle}>Observações gerais</Text>
-                <Text style={styles.notes}>{repertorio.observacoes}</Text>
-              </View>
-            )}
-          </View>
+          {repertorio.observacoes && (
+            <View style={styles.generalNotes}>
+              <Text style={styles.musicTitle}>Observações gerais</Text>
+              <Text style={styles.notes}>{repertorio.observacoes}</Text>
+            </View>
+          )}
         </View>
 
         <Text style={styles.footer} fixed>
@@ -276,13 +215,13 @@ function Moment({ moment, number }: { moment: any; number: number }) {
           </View>
         ))
       ) : (
-        <Text style={[styles.detail, { marginLeft: 25 }]}>
+        <Text style={[styles.detail, { marginLeft: 23 }]}>
           Nenhuma música definida.
         </Text>
       )}
 
       {moment.observacoes && (
-        <Text style={[styles.notes, { marginLeft: 25 }]}>
+        <Text style={[styles.notes, { marginLeft: 23 }]}>
           Observações: {moment.observacoes}
         </Text>
       )}
