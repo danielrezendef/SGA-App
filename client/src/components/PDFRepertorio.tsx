@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     width: "100%",
-    paddingLeft: 100,
     textAlign: "center",
   },
   title: {
@@ -185,7 +184,7 @@ export function PDFRepertorio({
 
   return (
     <Document title={title}>
-      <Page size="A4" style={styles.page} wrap={false}>
+      <Page size="A4" orientation="portrait" style={styles.page} wrap={false}>
         <View style={styles.headerRow}>
           <Image src={logoImg} style={styles.logo} />
           <View style={styles.headerTitle}>
@@ -225,7 +224,7 @@ export function PDFRepertorio({
         </View>
 
         <Text style={styles.footer} fixed>
-          SGA App · Repertório
+          SGA App Todos os Direitos reservados
         </Text>
       </Page>
     </Document>
