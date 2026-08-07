@@ -9,8 +9,16 @@ import {
 } from "@react-pdf/renderer";
 import logoImg from "@/assets/logo.png";
 
+const A4_PAGE_SIZE = {
+  width: 595.28,
+  height: 841.89,
+} as const;
+
 const styles = StyleSheet.create({
   page: {
+    width: A4_PAGE_SIZE.width,
+    height: A4_PAGE_SIZE.height,
+    overflow: "hidden",
     paddingTop: 28,
     paddingRight: 34,
     paddingBottom: 36,
@@ -184,7 +192,12 @@ export function PDFRepertorio({
 
   return (
     <Document title={title}>
-      <Page size="A4" orientation="portrait" style={styles.page} wrap={false}>
+      <Page
+        size={A4_PAGE_SIZE}
+        orientation="portrait"
+        style={styles.page}
+        wrap={false}
+      >
         <View style={styles.headerRow}>
           <Image src={logoImg} style={styles.logo} />
           <View style={styles.headerTitle}>
