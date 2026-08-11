@@ -162,7 +162,7 @@ export function PDFRepertorio({
           </View>
         </View>
 
-        <View style={styles.singleColumn} wrap={false}>
+        <View style={styles.singleColumn}>
           {moments.map((moment: any, index: number) => (
             <Moment key={moment.id} moment={moment} number={index + 1} />
           ))}

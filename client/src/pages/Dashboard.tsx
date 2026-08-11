@@ -163,7 +163,7 @@ export default function Dashboard() {
             <CardTitle className="text-base font-semibold">Agendamentos por mês</CardTitle>
             <CardDescription>Últimos 6 meses</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pl-0 pr-6">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData} barSize={32}>
