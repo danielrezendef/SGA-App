@@ -4,6 +4,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { Agendamento } from "../drizzle/schema";
 import { toISODateString } from "../shared/dateUtils";
 import {
+  getCobrancaByAgendamentoId,
   getUserById,
   removeGoogleCalendarConnection,
   saveGoogleCalendarConnection,
@@ -18,6 +19,25 @@ const CALENDAR_SCOPES = [
 const TIME_ZONE = "America/Sao_Paulo";
 const JWT_SECRET = process.env.JWT_SECRET ?? "wedding-secret-key";
 const STATE_SECRET = new TextEncoder().encode(JWT_SECRET);
+
+export function buildGoogleCalendarDescription(
+  agendamento: Pick<Agendamento, "id" | "descricao" | "valorServico" | "observacoes">,
+  valorContrato?: string
+) {
+  const observacoes = agendamento.observacoes?.trim();
+
+  return [
+    agendamento.descricao,
+    `Agendamento SGA #${agendamento.id}`,
+    `Valor do serviço: R$ ${Number(valorContrato ?? agendamento.valorServico).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`,
+    observacoes ? `Observações:\n${observacoes}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 function getOAuthConfig() {
   return {
@@ -228,18 +248,11 @@ export async function syncAgendamentoToGoogleCalendar(agendamento: Agendamento) 
     const calendarId = user.googleCalendarId || "primary";
 
     const dateTimes = getEventDateTimes(agendamento);
+    const contrato = await getCobrancaByAgendamentoId(agendamento.id);
     const event = {
       summary: agendamento.descricao,
       location: agendamento.enderecoCerimonia,
-      description: [
-        `Agendamento SGA #${agendamento.id}`,
-        `Valor do serviço: R$ ${Number(agendamento.valorServico).toLocaleString("pt-BR", {
-          minimumFractionDigits: 2,
-        })}`,
-        agendamento.observacoes ? `Observações: ${agendamento.observacoes}` : null,
-      ]
-        .filter(Boolean)
-        .join("\n"),
+      description: buildGoogleCalendarDescription(agendamento, contrato?.valor),
       start: { dateTime: dateTimes.start, timeZone: TIME_ZONE },
       end: { dateTime: dateTimes.end, timeZone: TIME_ZONE },
       extendedProperties: {

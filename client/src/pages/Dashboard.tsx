@@ -169,7 +169,13 @@ export default function Dashboard() {
                 <BarChart data={chartData} barSize={32}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis
+                    width={28}
+                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
                   <Tooltip
                     cursor={false}
                     contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", background: "var(--popover)", color: "var(--popover-foreground)", fontSize: "12px" }}

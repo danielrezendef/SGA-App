@@ -489,7 +489,11 @@ export async function getDashboardStats(userId?: number) {
       .where(
         and(
           userCondition,
-          gte(agendamentos.dataEvento, sql`DATE_SUB(CURDATE(), INTERVAL 6 MONTH)`)
+          gte(
+            agendamentos.dataEvento,
+            sql`DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 MONTH), '%Y-%m-01')`
+          ),
+          lte(agendamentos.dataEvento, sql`LAST_DAY(CURDATE())`)
         )
       ),
   ]);
@@ -515,9 +519,11 @@ export async function getDashboardStats(userId?: number) {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     porMesMap.set(key, (porMesMap.get(key) ?? 0) + 1);
   }
-  const porMesFormatted = Array.from(porMesMap.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mes, count]) => ({ mes, count }));
+  const porMesFormatted = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(year, month - 6 + index, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    return { mes: key, count: porMesMap.get(key) ?? 0 };
+  });
 
   return {
     totalAno: totalAno[0]?.count ?? 0,
