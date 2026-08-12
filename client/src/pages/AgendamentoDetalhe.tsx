@@ -183,8 +183,9 @@ export default function AgendamentoDetalhe() {
       const { PDFRecibo } = await import("@/components/PDFRecibo");
       const { pdf } = await import("@react-pdf/renderer");
       
-      const doc = (
+      const criarDocumento = (tipoDocumento: "contrato" | "recibo") => (
         <PDFRecibo
+          tipoDocumento={tipoDocumento}
           agendamento={{
             ...data,
             endereco: data.enderecoCerimonia,
@@ -208,18 +209,26 @@ export default function AgendamentoDetalhe() {
 
         />
       );
-      const blob = await pdf(doc).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const [contratoBlob, reciboBlob] = await Promise.all([
+        pdf(criarDocumento("contrato")).toBlob(),
+        pdf(criarDocumento("recibo")).toBlob(),
+      ]);
       const descricaoArquivo = (data.descricao || "Sem descrição")
         .trim()
         .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
         .replace(/[. ]+$/g, "");
-      link.href = url;
-      link.download = `Contrato ${descricaoArquivo}.pdf`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success("PDF gerado com sucesso!");
+      const baixarArquivo = (blob: Blob, nomeArquivo: string) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = nomeArquivo;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+
+      baixarArquivo(contratoBlob, `Contrato ${descricaoArquivo}.pdf`);
+      baixarArquivo(reciboBlob, `Recibo ${descricaoArquivo}.pdf`);
+      toast.success("Contrato e recibo gerados com sucesso!");
       
       // Atualizar status para "pagamento" quando emitir PDF, sem rebaixar agendamentos já concluídos.
       if (data.status !== "pagamento" && data.status !== "concluido") {
@@ -366,7 +375,7 @@ export default function AgendamentoDetalhe() {
                         </>
                       ) : (
                         <>
-                          <Download className="w-3.5 h-3.5 mr-1.5" /> {canUseContracts ? "Baixar Contrato" : "Ative contrato automático no perfil"}
+                          <Download className="w-3.5 h-3.5 mr-1.5" /> {canUseContracts ? "Baixar Contrato e Recibo" : "Ative contrato automático no perfil"}
                         </>
                       )}
                     </Button>

@@ -13,6 +13,7 @@ import { formatDateSafe } from "@shared/dateUtils";
 import logoImg from "@/assets/logo.png";
 
 interface PDFReciboProps {
+  tipoDocumento: "contrato" | "recibo";
   agendamento: {
     id: number;
     descricao: string;
@@ -306,6 +307,7 @@ const formatCurrency = (value: number) => {
 };
 
 export const PDFRecibo: React.FC<PDFReciboProps> = ({
+  tipoDocumento,
   agendamento,
   cobranca,
   nomeEmpresa,
@@ -316,8 +318,10 @@ export const PDFRecibo: React.FC<PDFReciboProps> = ({
 
   return (
     <Document>
-      {/* RECIBO */}
-      <Page size="A4" style={styles.page}>
+      {tipoDocumento === "recibo" && (
+        <>
+          {/* RECIBO */}
+          <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Image style={styles.logo} src={logoImg} />
         </View>
@@ -412,10 +416,14 @@ export const PDFRecibo: React.FC<PDFReciboProps> = ({
             Este recibo é válido como comprovante de cobrança do serviço.
           </Text>
         </View>
-      </Page>
+          </Page>
+        </>
+      )}
 
       {/* CONTRATO - PÁGINA 1 */}
-      <Page size="A4" style={styles.contractPage}>
+      {tipoDocumento === "contrato" && (
+        <>
+          <Page size="A4" style={styles.contractPage}>
         <Text style={styles.contractTitle}>
           CONTRATO DE PRESTAÇÃO DE{"\n"}SERVIÇOS MUSICAIS
         </Text>
@@ -555,7 +563,9 @@ export const PDFRecibo: React.FC<PDFReciboProps> = ({
         <Text style={styles.footerNote}>
           Este contrato rege-se pelo disposto nos artigos 593 a 609 do Código Civil.
         </Text>
-      </Page>
+          </Page>
+        </>
+      )}
     </Document>
   );
 };
