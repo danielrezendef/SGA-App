@@ -29,6 +29,7 @@ import {
 import { useLocation } from "wouter";
 import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
 import { formatDateSafe } from "@shared/dateUtils";
+import { getRepertorioButtonClass } from "@/lib/repertorioStatus";
 
 const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -280,7 +281,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 shrink-0"
+                    className={`h-8 shrink-0 ${getRepertorioButtonClass(ev.repertorioStatus)}`}
                     onClick={(event) => {
                       event.stopPropagation();
                       navigate(`/agendamentos/${ev.id}/repertorio`);

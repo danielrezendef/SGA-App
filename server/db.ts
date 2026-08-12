@@ -1,7 +1,7 @@
-import { and, asc, count, desc, eq, gte, ilike, like, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, getTableColumns, gte, ilike, like, lte, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { parseDateSafe } from "../shared/dateUtils";
-import { agendamentos, cobrancas, contratos, InsertUser, users, Contrato, InsertContrato } from "../drizzle/schema";
+import { agendamentos, cobrancas, contratos, InsertUser, users, Contrato, InsertContrato, repertorios } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -259,8 +259,12 @@ export async function listAgendamentos(filters: AgendamentoFilters = {}) {
 
   const [items, totalResult] = await Promise.all([
     db
-      .select()
+      .select({
+        ...getTableColumns(agendamentos),
+        repertorioStatus: repertorios.status,
+      })
       .from(agendamentos)
+      .leftJoin(repertorios, eq(repertorios.agendamentoId, agendamentos.id))
       .where(where)
       .orderBy(asc(agendamentos.dataEvento))
       .limit(pageSize)
@@ -275,7 +279,15 @@ export async function getAgendamentoById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
   await completePastAgendamentos();
-  const result = await db.select().from(agendamentos).where(eq(agendamentos.id, id)).limit(1);
+  const result = await db
+    .select({
+      ...getTableColumns(agendamentos),
+      repertorioStatus: repertorios.status,
+    })
+    .from(agendamentos)
+    .leftJoin(repertorios, eq(repertorios.agendamentoId, agendamentos.id))
+    .where(eq(agendamentos.id, id))
+    .limit(1);
   return result[0];
 }
 
@@ -461,8 +473,12 @@ export async function getDashboardStats(userId?: number) {
       .groupBy(agendamentos.status),
     // Próximos eventos (próximos 30 dias)
     db
-      .select()
+      .select({
+        ...getTableColumns(agendamentos),
+        repertorioStatus: repertorios.status,
+      })
       .from(agendamentos)
+      .leftJoin(repertorios, eq(repertorios.agendamentoId, agendamentos.id))
       .where(
         and(
           userCondition,

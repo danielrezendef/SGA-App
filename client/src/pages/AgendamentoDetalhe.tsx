@@ -37,6 +37,7 @@ import { ptBR } from "date-fns/locale";
 import { formatDateSafe as formatDateSafeShared } from "@shared/dateUtils";
 import StatusBadge from "@/components/StatusBadge";
 import AgendamentoModal from "@/components/AgendamentoModal";
+import { getRepertorioButtonClass } from "@/lib/repertorioStatus";
 import CobrancaModal from "@/components/CobrancaModal";
 
 function formatCurrency(value: string | number) {
@@ -257,7 +258,12 @@ export default function AgendamentoDetalhe() {
           <p className="text-sm text-muted-foreground mt-0.5">Agendamento #{data.id}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/agendamentos/${id}/repertorio`)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className={getRepertorioButtonClass(data.repertorioStatus)}
+            onClick={() => navigate(`/agendamentos/${id}/repertorio`)}
+          >
             <ListMusic className="w-4 h-4 mr-2" /> Repertório
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>

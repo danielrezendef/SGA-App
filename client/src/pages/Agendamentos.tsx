@@ -35,6 +35,7 @@ import {
 import { formatDateSafe } from "@shared/dateUtils";
 import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
 import AgendamentoModal from "@/components/AgendamentoModal";
+import { getRepertorioButtonClass } from "@/lib/repertorioStatus";
 
 function formatCurrency(value: string | number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
@@ -238,7 +239,7 @@ export default function Agendamentos() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8"
+                          className={`h-8 ${getRepertorioButtonClass(ag.repertorioStatus)}`}
                           onClick={() => navigate(`/agendamentos/${ag.id}/repertorio`)}
                         >
                           <ListMusic className="w-3.5 h-3.5 mr-1.5" /> Repertório
@@ -306,7 +307,7 @@ export default function Agendamentos() {
                     <StatusBadge status={ag.status} />
                   </div>
                   <div className="flex items-center gap-2 mt-3">
-                    <Button variant="outline" size="sm" className="h-8 flex-1" onClick={() => navigate(`/agendamentos/${ag.id}/repertorio`)}>
+                    <Button variant="outline" size="sm" className={`h-8 flex-1 ${getRepertorioButtonClass(ag.repertorioStatus)}`} onClick={() => navigate(`/agendamentos/${ag.id}/repertorio`)}>
                       <ListMusic className="w-3.5 h-3.5 mr-1.5" /> Repertório
                     </Button>
                     <Button variant="outline" size="sm" className="h-8 flex-1" onClick={() => navigate(`/agendamentos/${ag.id}`)}>
