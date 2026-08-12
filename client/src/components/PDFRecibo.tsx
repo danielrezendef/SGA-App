@@ -383,10 +383,6 @@ export const PDFRecibo: React.FC<PDFReciboProps> = ({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dados de Cobrança</Text>
           <View style={styles.row}>
-            <Text style={styles.label}>Valor do Serviço:</Text>
-            <Text style={styles.value}>{formatCurrency(agendamento.valorServico)}</Text>
-          </View>
-          <View style={styles.row}>
             <Text style={styles.label}>Valor Cobrado:</Text>
             <Text style={styles.value}>{formatCurrency(cobranca.valor)}</Text>
           </View>
