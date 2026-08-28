@@ -23,6 +23,8 @@ vi.mock("./repertorioDb", async () => {
     removerMusica: vi.fn(),
     moverMusica: vi.fn(),
     buscarSugestoes: vi.fn(),
+    listarBibliotecaSugestoes: vi.fn(),
+    limparRepertorioSemMusicas: vi.fn(),
   };
 });
 
@@ -76,6 +78,26 @@ describe("repertorio router", () => {
       42,
       9
     );
+  });
+
+  it("scopes the suggestions library to the authenticated user", async () => {
+    vi.mocked(repertorioDb.listarBibliotecaSugestoes).mockResolvedValue([]);
+    const caller = appRouter.createCaller(makeCtx(42));
+
+    await caller.repertorio.bibliotecaSugestoes();
+
+    expect(repertorioDb.listarBibliotecaSugestoes).toHaveBeenCalledWith(42);
+  });
+
+  it("only clears an empty repertoire owned by the authenticated user", async () => {
+    vi.mocked(repertorioDb.limparRepertorioSemMusicas).mockResolvedValue({
+      removido: true,
+    });
+    const caller = appRouter.createCaller(makeCtx(42));
+
+    await caller.repertorio.limparSemMusicas({ agendamentoId: 9 });
+
+    expect(repertorioDb.limparRepertorioSemMusicas).toHaveBeenCalledWith(42, 9);
   });
 
   it("trims moment input and converts empty observations to null", async () => {

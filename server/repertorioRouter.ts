@@ -14,6 +14,8 @@ import {
   criarRepertorio,
   duplicarMomento,
   getRepertorioPorAgendamento,
+  listarBibliotecaSugestoes,
+  limparRepertorioSemMusicas,
   moverMomento,
   moverMusica,
   pesquisarAgendamentosSemRepertorio,
@@ -86,6 +88,10 @@ function withDbErrors<TArgs extends unknown[], TResult>(
 }
 
 export const repertorioRouter = router({
+  bibliotecaSugestoes: protectedProcedure.query(({ ctx }) =>
+    withDbErrors(listarBibliotecaSugestoes)(ctx.user.id)
+  ),
+
   porAgendamento: protectedProcedure
     .input(z.object({ agendamentoId: idSchema }))
     .query(({ ctx, input }) =>
@@ -93,6 +99,12 @@ export const repertorioRouter = router({
         ctx.user.id,
         input.agendamentoId
       )
+    ),
+
+  limparSemMusicas: protectedProcedure
+    .input(z.object({ agendamentoId: idSchema }))
+    .mutation(({ ctx, input }) =>
+      withDbErrors(limparRepertorioSemMusicas)(ctx.user.id, input.agendamentoId)
     ),
 
   criarModeloPadrao: protectedProcedure

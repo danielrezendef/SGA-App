@@ -3,6 +3,7 @@ import {
   asc,
   desc,
   eq,
+  exists,
   inArray,
   isNull,
   like,
@@ -255,6 +256,36 @@ export async function getRepertorioPorAgendamento(
   };
 }
 
+export async function limparRepertorioSemMusicas(
+  userId: number,
+  agendamentoId: number
+) {
+  const db = requireDb(await getDb());
+  return db.transaction(async tx => {
+    await assertAgendamento(tx, userId, agendamentoId);
+    const [repertorio] = await tx
+      .select({ id: repertorios.id })
+      .from(repertorios)
+      .where(eq(repertorios.agendamentoId, agendamentoId))
+      .limit(1);
+    if (!repertorio) return { removido: false };
+
+    const [music] = await tx
+      .select({ id: musicasMomento.id })
+      .from(musicasMomento)
+      .innerJoin(
+        momentosRepertorio,
+        eq(musicasMomento.momentoId, momentosRepertorio.id)
+      )
+      .where(eq(momentosRepertorio.repertorioId, repertorio.id))
+      .limit(1);
+    if (music) return { removido: false };
+
+    await tx.delete(repertorios).where(eq(repertorios.id, repertorio.id));
+    return { removido: true };
+  });
+}
+
 export async function criarRepertorio(
   userId: number,
   agendamentoId: number,
@@ -268,14 +299,38 @@ export async function criarRepertorio(
       .from(repertorios)
       .where(eq(repertorios.agendamentoId, agendamentoId))
       .limit(1);
-    if (existing)
-      throw new RepertorioDbError(
-        "CONFLICT",
-        "Este agendamento já possui repertório."
-      );
 
-    const insertResult = await tx.insert(repertorios).values({ agendamentoId });
-    const repertorioId = insertResult[0].insertId as number;
+    let repertorioId: number;
+    if (existing) {
+      const [existingMusic] = await tx
+        .select({ id: musicasMomento.id })
+        .from(musicasMomento)
+        .innerJoin(
+          momentosRepertorio,
+          eq(musicasMomento.momentoId, momentosRepertorio.id)
+        )
+        .where(eq(momentosRepertorio.repertorioId, existing.id))
+        .limit(1);
+      if (existingMusic)
+        throw new RepertorioDbError(
+          "CONFLICT",
+          "Este agendamento já possui um repertório com músicas."
+        );
+
+      repertorioId = existing.id;
+      await tx
+        .delete(momentosRepertorio)
+        .where(eq(momentosRepertorio.repertorioId, repertorioId));
+      await tx
+        .update(repertorios)
+        .set({ status: "RASCUNHO" })
+        .where(eq(repertorios.id, repertorioId));
+    } else {
+      const insertResult = await tx
+        .insert(repertorios)
+        .values({ agendamentoId });
+      repertorioId = insertResult[0].insertId as number;
+    }
     if (!comModelo) return;
 
     const tipos = await tx
@@ -320,18 +375,42 @@ async function copiarDentroDaTransacao(
     .from(repertorios)
     .where(eq(repertorios.agendamentoId, targetAgendamentoId))
     .limit(1);
-  if (existing)
-    throw new RepertorioDbError(
-      "CONFLICT",
-      "O agendamento de destino já possui repertório."
-    );
+  let targetRepertorioId: number;
+  if (existing) {
+    const [existingMusic] = await tx
+      .select({ id: musicasMomento.id })
+      .from(musicasMomento)
+      .innerJoin(
+        momentosRepertorio,
+        eq(musicasMomento.momentoId, momentosRepertorio.id)
+      )
+      .where(eq(momentosRepertorio.repertorioId, existing.id))
+      .limit(1);
+    if (existingMusic)
+      throw new RepertorioDbError(
+        "CONFLICT",
+        "O agendamento de destino já possui um repertório com músicas."
+      );
 
-  const inserted = await tx.insert(repertorios).values({
-    agendamentoId: targetAgendamentoId,
-    status: "RASCUNHO",
-    observacoes: source.repertorio.observacoes,
-  });
-  const targetRepertorioId = inserted[0].insertId as number;
+    targetRepertorioId = existing.id;
+    await tx
+      .delete(momentosRepertorio)
+      .where(eq(momentosRepertorio.repertorioId, targetRepertorioId));
+    await tx
+      .update(repertorios)
+      .set({
+        status: "RASCUNHO",
+        observacoes: source.repertorio.observacoes,
+      })
+      .where(eq(repertorios.id, targetRepertorioId));
+  } else {
+    const inserted = await tx.insert(repertorios).values({
+      agendamentoId: targetAgendamentoId,
+      status: "RASCUNHO",
+      observacoes: source.repertorio.observacoes,
+    });
+    targetRepertorioId = inserted[0].insertId as number;
+  }
   const sourceMomentos = await tx
     .select()
     .from(momentosRepertorio)
@@ -391,7 +470,18 @@ export async function pesquisarRepertorios(
 ) {
   const db = requireDb(await getDb());
   const termo = `%${busca.trim()}%`;
-  const conditions = [eq(agendamentos.userId, userId)];
+  const hasMusic = db
+    .select({ id: musicasMomento.id })
+    .from(musicasMomento)
+    .innerJoin(
+      momentosRepertorio,
+      eq(musicasMomento.momentoId, momentosRepertorio.id)
+    )
+    .where(eq(momentosRepertorio.repertorioId, repertorios.id));
+  const conditions = [
+    eq(agendamentos.userId, userId),
+    or(eq(repertorios.status, "FINALIZADO"), exists(hasMusic))!,
+  ];
   if (excluirAgendamentoId)
     conditions.push(sql`${agendamentos.id} <> ${excluirAgendamentoId}`);
   if (busca.trim()) {
@@ -412,13 +502,13 @@ export async function pesquisarRepertorios(
       dataEvento: agendamentos.dataEvento,
       horario: agendamentos.horario,
       local: agendamentos.enderecoCerimonia,
+      agendamentoStatus: agendamentos.status,
       status: repertorios.status,
     })
     .from(repertorios)
     .innerJoin(agendamentos, eq(repertorios.agendamentoId, agendamentos.id))
     .where(and(...conditions))
-    .orderBy(desc(agendamentos.dataEvento))
-    .limit(30);
+    .orderBy(desc(agendamentos.dataEvento));
 }
 
 export async function pesquisarAgendamentosSemRepertorio(
@@ -825,4 +915,50 @@ export async function buscarSugestoes(
         a.titulo.localeCompare(b.titulo, "pt-BR")
     )
     .slice(0, 20);
+}
+
+/**
+ * Retorna o histórico completo de músicas do usuário para a biblioteca de
+ * sugestões. O agrupamento fica no cliente para que busca e troca de visão
+ * sejam instantâneas, mas todas as ocorrências permanecem vinculadas ao seu
+ * momento, repertório e agendamento de origem.
+ */
+export async function listarBibliotecaSugestoes(userId: number) {
+  const db = requireDb(await getDb());
+
+  return db
+    .select({
+      musicaId: musicasMomento.id,
+      titulo: musicasMomento.titulo,
+      artista: musicasMomento.artista,
+      tonalidade: musicasMomento.tonalidade,
+      linkReferencia: musicasMomento.linkReferencia,
+      observacoes: musicasMomento.observacoes,
+      momentoId: momentosRepertorio.id,
+      momentoNome: momentosRepertorio.nome,
+      tipoMomentoId: tiposMomento.id,
+      tipoMomentoNome: tiposMomento.nome,
+      repertorioId: repertorios.id,
+      repertorioStatus: repertorios.status,
+      agendamentoId: agendamentos.id,
+      agendamentoDescricao: agendamentos.descricao,
+      dataEvento: agendamentos.dataEvento,
+    })
+    .from(musicasMomento)
+    .innerJoin(
+      momentosRepertorio,
+      eq(musicasMomento.momentoId, momentosRepertorio.id)
+    )
+    .innerJoin(
+      tiposMomento,
+      eq(momentosRepertorio.tipoMomentoId, tiposMomento.id)
+    )
+    .innerJoin(repertorios, eq(momentosRepertorio.repertorioId, repertorios.id))
+    .innerJoin(agendamentos, eq(repertorios.agendamentoId, agendamentos.id))
+    .where(eq(agendamentos.userId, userId))
+    .orderBy(
+      desc(agendamentos.dataEvento),
+      asc(momentosRepertorio.ordem),
+      asc(musicasMomento.ordem)
+    );
 }

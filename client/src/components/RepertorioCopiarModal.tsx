@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Copy, Loader2, MapPin, Search } from "lucide-react";
+import { Calendar, CheckCircle2, Copy, Loader2, MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { formatDateSafe } from "@shared/dateUtils";
 
 type Props = {
@@ -56,7 +57,7 @@ export default function RepertorioCopiarModal(props: Props) {
           </DialogTitle>
           <DialogDescription>
             {props.mode === "source"
-              ? "Pesquise por casal, data ou local. A cópia será independente e iniciará como rascunho."
+              ? "Escolha qualquer repertório, inclusive de agendamentos concluídos. A cópia será independente e iniciará como rascunho."
               : "Selecione um agendamento sem repertório para receber uma cópia independente."}
           </DialogDescription>
         </DialogHeader>
@@ -88,7 +89,17 @@ export default function RepertorioCopiarModal(props: Props) {
                     className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border bg-card p-4"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{item.descricao}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{item.descricao}</p>
+                        {props.mode === "source" &&
+                          "agendamentoStatus" in item &&
+                          item.agendamentoStatus === "concluido" && (
+                            <Badge variant="secondary" className="shrink-0 gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Concluído
+                            </Badge>
+                          )}
+                      </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
@@ -129,7 +140,11 @@ export default function RepertorioCopiarModal(props: Props) {
           ) : (
             <div className="text-center py-14 text-muted-foreground">
               <Copy className="w-9 h-9 mx-auto mb-3 opacity-30" />
-              <p>Nenhum resultado disponível</p>
+              <p>
+                {props.mode === "source"
+                  ? "Nenhum repertório finalizado ou com músicas disponível"
+                  : "Nenhum resultado disponível"}
+              </p>
             </div>
           )}
         </ScrollArea>

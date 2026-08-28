@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   ArrowDown,
@@ -82,6 +82,8 @@ export default function RepertorioAgendamento() {
   const [copyMode, setCopyMode] = useState<"source" | "target" | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [showEmptyEditor, setShowEmptyEditor] = useState(false);
+  const resetRequestedRef = useRef<number | null>(null);
 
   const refresh = () =>
     utils.repertorio.porAgendamento.invalidate({ agendamentoId });
@@ -93,6 +95,7 @@ export default function RepertorioAgendamento() {
   const createModel = trpc.repertorio.criarModeloPadrao.useMutation({
     onSuccess: () => {
       toast.success("Repertório criado com o modelo padrão!");
+      setShowEmptyEditor(true);
       refresh();
     },
     onError: error => toast.error(error.message),
@@ -100,7 +103,14 @@ export default function RepertorioAgendamento() {
   const createEmpty = trpc.repertorio.criarVazio.useMutation({
     onSuccess: () => {
       toast.success("Repertório vazio criado!");
+      setShowEmptyEditor(true);
       refresh();
+    },
+    onError: error => toast.error(error.message),
+  });
+  const resetEmpty = trpc.repertorio.limparSemMusicas.useMutation({
+    onSuccess: result => {
+      if (result.removido) refresh();
     },
     onError: error => toast.error(error.message),
   });
@@ -148,6 +158,31 @@ export default function RepertorioAgendamento() {
     onError: error => toast.error(error.message),
   });
 
+  const loadedRepertorio = query.data?.repertorio;
+  const loadedHasMusic = Boolean(
+    loadedRepertorio?.momentos.some(momento => momento.musicas.length > 0)
+  );
+  useEffect(() => {
+    if (
+      !validId ||
+      !loadedRepertorio ||
+      loadedHasMusic ||
+      showEmptyEditor ||
+      resetRequestedRef.current === loadedRepertorio.id
+    )
+      return;
+
+    resetRequestedRef.current = loadedRepertorio.id;
+    resetEmpty.mutate({ agendamentoId });
+  }, [
+    agendamentoId,
+    loadedHasMusic,
+    loadedRepertorio,
+    resetEmpty,
+    showEmptyEditor,
+    validId,
+  ]);
+
   if (query.isLoading) return <LoadingState />;
   if (!validId || query.error || !query.data) {
     return (
@@ -169,8 +204,10 @@ export default function RepertorioAgendamento() {
   }
 
   const { agendamento, repertorio, tiposMomento } = query.data;
-  if (!repertorio) {
-    const pending = createModel.isPending || createEmpty.isPending;
+  const hasMusic = loadedHasMusic;
+  if (!repertorio || (!hasMusic && !showEmptyEditor)) {
+    const pending =
+      createModel.isPending || createEmpty.isPending || resetEmpty.isPending;
     return (
       <div className="space-y-6 page-enter">
         <PageHeader

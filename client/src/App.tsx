@@ -15,6 +15,7 @@ import Calendario from "./pages/Calendario";
 import Usuarios from "./pages/Usuarios";
 import Perfil from "./pages/Perfil";
 import Contratos from "./pages/Contratos";
+import Sugestoes from "./pages/Sugestoes";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import Home from "./pages/Home";
@@ -56,6 +57,9 @@ function Router() {
       </Route>
       <Route path="/agendamentos">
         <ProtectedRoute component={Agendamentos} />
+      </Route>
+      <Route path="/sugestoes">
+        <ProtectedRoute component={Sugestoes} />
       </Route>
       <Route path="/contratos">
         <ProtectedRoute component={Contratos}/>

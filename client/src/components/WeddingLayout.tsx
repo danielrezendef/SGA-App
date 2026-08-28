@@ -32,6 +32,7 @@ import {
   PanelLeft,
   Shield,
   FileText,
+  Lightbulb,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -43,6 +44,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Calendar, label: "Calendário", path: "/calendario" },
   { icon: Clock, label: "Agendamentos", path: "/agendamentos" },
+  { icon: Lightbulb, label: "Sugestões", path: "/sugestoes" },
   { icon: FileText, label: "Contratos", path: "/contratos", requiresAutoContract: true },
 ];
 
