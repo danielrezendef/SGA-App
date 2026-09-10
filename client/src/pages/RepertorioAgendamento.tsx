@@ -271,12 +271,12 @@ export default function RepertorioAgendamento() {
   const downloadPdf = async () => {
     try {
       setGeneratingPdf(true);
-      const [{ PDFRepertorio }, { pdf }] = await Promise.all([
+      const [{ preparePDFRepertorio }, { pdf }] = await Promise.all([
         import("@/components/PDFRepertorio"),
         import("@react-pdf/renderer"),
       ]);
       const blob = await pdf(
-        <PDFRepertorio agendamento={agendamento} repertorio={repertorio} />
+        await preparePDFRepertorio({ agendamento, repertorio })
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
