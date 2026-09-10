@@ -10,9 +10,10 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDateSafe } from "@shared/dateUtils";
-import logoImg from "@/assets/logo.png";
+import { resolveDocumentLogo } from "@/lib/documentLogo";
 
 interface PDFReciboProps {
+  logo?: string | null;
   tipoDocumento: "contrato" | "recibo";
   agendamento: {
     id: number;
@@ -308,6 +309,7 @@ const formatCurrency = (value: number) => {
 
 export const PDFRecibo: React.FC<PDFReciboProps> = ({
   tipoDocumento,
+  logo,
   agendamento,
   cobranca,
   nomeEmpresa,
@@ -323,7 +325,7 @@ export const PDFRecibo: React.FC<PDFReciboProps> = ({
           {/* RECIBO */}
           <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Image style={styles.logo} src={logoImg} />
+          <Image style={styles.logo} src={resolveDocumentLogo(logo)} />
         </View>
 
         <View style={styles.section}>

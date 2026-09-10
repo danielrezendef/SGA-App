@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import logoImg from "@/assets/logo.png";
+import { resolveDocumentLogo } from "@/lib/documentLogo";
 
 const A4_PAGE_SIZE = {
   width: 595.28,
@@ -133,7 +133,7 @@ function titleFontSize(title: string) {
   return Math.max(7, Math.min(20, 680 / Math.max(title.length, 1)));
 }
 
-type PDFProps = { agendamento: any; repertorio: any };
+type PDFProps = { agendamento: any; repertorio: any; logo?: string | null };
 type Sheet = { columns: number[][]; oversized?: boolean };
 type LayoutNode = {
   box: { height: number; marginBottom?: number; marginTop?: number };
@@ -226,6 +226,7 @@ export function PDFRepertorio({
   agendamento,
   repertorio,
   sheets,
+  logo,
 }: PDFProps & { sheets?: Sheet[] }) {
   const title = `Repertório ${appointmentName(agendamento.descricao ?? "")}`;
   const blocks = blocksFor(repertorio);
@@ -244,7 +245,7 @@ export function PDFRepertorio({
           wrap
         >
           <View style={styles.headerRow} fixed>
-            <Image src={logoImg} style={styles.logo} />
+            <Image src={resolveDocumentLogo(logo)} style={styles.logo} />
             <View style={styles.headerTitle}>
               <Text style={[styles.title, { fontSize: titleFontSize(title) }]}>
                 {title}

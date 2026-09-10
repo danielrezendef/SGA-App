@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
+import { useDocumentLogo } from "@/hooks/useDocumentLogo";
 import { trpc } from "@/lib/trpc";
 import { useAppAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,6 +84,7 @@ function formatCobrancaEndereco(cobranca: CobrancaEndereco | null | undefined) {
 }
 
 export default function AgendamentoDetalhe() {
+  const { getLogo } = useDocumentLogo();
   const params = useParams<{ id: string }>();
   const id = Number.parseInt(params.id ?? "", 10);
   const hasValidId = Number.isFinite(id) && id > 0;
@@ -184,9 +186,11 @@ export default function AgendamentoDetalhe() {
       const { PDFRecibo } = await import("@/components/PDFRecibo");
       const { pdf } = await import("@react-pdf/renderer");
       
+      const logo = await getLogo();
       const criarDocumento = (tipoDocumento: "contrato" | "recibo") => (
         <PDFRecibo
           tipoDocumento={tipoDocumento}
+          logo={logo}
           agendamento={{
             ...data,
             endereco: data.enderecoCerimonia,

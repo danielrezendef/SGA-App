@@ -4,6 +4,7 @@ import {
   mysqlEnum,
   mysqlTable,
   text,
+  mediumtext,
   timestamp,
   varchar,
   decimal,
@@ -19,6 +20,8 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }).unique(),
   password: varchar("password", { length: 255 }), // bcrypt hash for custom auth
   loginMethod: varchar("loginMethod", { length: 64 }),
+  documentLogoKey: varchar("document_logo_key", { length: 255 }),
+  documentLogoData: mediumtext("document_logo_data"),
   profilePhoto: text("profilePhoto"), // URL da foto de perfil
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   gerarContratoAutomaticamente: boolean("gerar_contrato_automaticamente")
@@ -33,7 +36,8 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
-export type User = typeof users.$inferSelect;
+// Image bytes are loaded only by the document-logo query, never by authentication.
+export type User = Omit<typeof users.$inferSelect, "documentLogoData">;
 export type InsertUser = typeof users.$inferInsert;
 
 // ─── Agendamentos ─────────────────────────────────────────────────────────────

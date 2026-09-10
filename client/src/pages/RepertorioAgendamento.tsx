@@ -20,6 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useDocumentLogo } from "@/hooks/useDocumentLogo";
 import { trpc } from "@/lib/trpc";
 import { formatDateSafe } from "@shared/dateUtils";
 import {
@@ -60,6 +61,7 @@ type Confirmation = {
 } | null;
 
 export default function RepertorioAgendamento() {
+  const { getLogo } = useDocumentLogo();
   const params = useParams<{ id: string }>();
   const agendamentoId = Number.parseInt(params.id ?? "", 10);
   const validId = Number.isFinite(agendamentoId) && agendamentoId > 0;
@@ -276,7 +278,7 @@ export default function RepertorioAgendamento() {
         import("@react-pdf/renderer"),
       ]);
       const blob = await pdf(
-        await preparePDFRepertorio({ agendamento, repertorio })
+        await preparePDFRepertorio({ agendamento, repertorio, logo: await getLogo() })
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");

@@ -46,6 +46,7 @@ import {
   selectGoogleCalendar,
   syncAgendamentoToGoogleCalendar,
 } from "./googleCalendar";
+import { documentLogoRouter } from "./documentLogoRouter";
 import { repertorioRouter } from "./repertorioRouter";
 
 if (!globalThis.crypto) {
@@ -90,6 +91,7 @@ const authRouter = router({
       name: user.name,
       email: user.email,
       profilePhoto: user.profilePhoto,
+      documentLogoKey: user.documentLogoKey,
       role: user.role,
       gerarContratoAutomaticamente: user.gerarContratoAutomaticamente,
     };
@@ -673,6 +675,7 @@ const contratosRouter = router({
 
 // ─── App Router ───────────────────────────────────────────────────────────────
 export const appRouter = router({
+  documentLogo: documentLogoRouter,
   system: systemRouter,
   auth: authRouter,
   agendamentos: agendamentosRouter,

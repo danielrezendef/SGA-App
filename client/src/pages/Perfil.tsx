@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import DocumentLogoSettings from "@/components/DocumentLogoSettings";
 import WeddingLayout from "@/components/WeddingLayout";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Upload, Mail, User, Lock, FileText, CalendarDays, CheckCircle2, AlertCircle, Unplug } from "lucide-react";
@@ -249,6 +250,8 @@ export default function Perfil() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Meu Perfil</h1>
           <p className="text-muted-foreground">Visualize e edite suas informações pessoais</p>
         </div>
+
+        <DocumentLogoSettings />
 
         <Card className="mb-6">
           <CardHeader>

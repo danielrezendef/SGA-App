@@ -4,6 +4,9 @@ import { parseDateSafe } from "../shared/dateUtils";
 import { agendamentos, cobrancas, contratos, InsertUser, users, Contrato, InsertContrato, repertorios } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
+// Keep image bytes out of routine user/session reads.
+const { documentLogoData: _documentLogoData, ...userColumns } = getTableColumns(users);
+
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
@@ -57,21 +60,21 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db.select(userColumns).from(users).where(eq(users.openId, openId)).limit(1);
   return result[0];
 }
 
 export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const result = await db.select(userColumns).from(users).where(eq(users.email, email)).limit(1);
   return result[0];
 }
 
 export async function getUserById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  const result = await db.select(userColumns).from(users).where(eq(users.id, id)).limit(1);
   return result[0];
 }
 
@@ -686,4 +689,19 @@ export async function setDefaultContrato(userId: number, id: number): Promise<Co
   });
 
   return getContratoById(userId, id);
+}
+
+
+export async function saveUserDocumentLogo(userId: number, documentLogoKey: string | null, documentLogoData: string | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ documentLogoKey, documentLogoData }).where(eq(users.id, userId));
+}
+
+export async function getUserDocumentLogo(userId: number, key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [row] = await db.select({ data: users.documentLogoData }).from(users)
+    .where(and(eq(users.id, userId), eq(users.documentLogoKey, key))).limit(1);
+  return row?.data ?? null;
 }

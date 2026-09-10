@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>Logo QA</title><h1>Teste local de conversão</h1><pre id="result">Executando...</pre><div id="previews"></div><script type="module">
+import { prepareDocumentLogo } from '/src/lib/documentLogo.ts';
+const results=[];
+for (const [type,width,height] of [['image/png',800,200],['image/jpeg',400,400],['image/webp',200,800],['image/png',4000,1000]]) {
+ const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+ const ctx=canvas.getContext('2d');ctx.fillStyle='#1c5270';ctx.fillRect(0,0,width,height);ctx.fillStyle='#ffffff';ctx.font=`${Math.round(Math.min(width,height)/4)}px sans-serif`;ctx.fillText('LOGO',10,Math.min(width,height)/2);
+ const blob=await new Promise(r=>canvas.toBlob(r,type));
+ const file=new File([blob],'logo.'+type.split('/')[1],{type});
+ const normalized=await prepareDocumentLogo(file);
+ const img=new Image();img.src=normalized;await img.decode();img.style='width:200px;height:100px;object-fit:contain;margin:10px;border:1px solid #ddd';
+ document.querySelector('#previews').append(img);
+ results.push({type,input:[width,height],output:[img.naturalWidth,img.naturalHeight],bytes:atob(normalized.split(',')[1]).length,data:normalized});
+}
+const validation=await fetch('/__logo-qa',{method:'POST',body:JSON.stringify(results)});
+const validated=await validation.text();
+const status=document.createElement('pre');status.textContent='Validação no servidor: '+validated;document.body.append(status);
+window.qaResults=results;
+document.querySelector('#result').textContent=JSON.stringify(results.map(({data,...rest})=>rest),null,2);
+</script>

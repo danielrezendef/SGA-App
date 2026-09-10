@@ -6,6 +6,7 @@ export type AuthUser = {
   name: string | null;
   email: string | null;
   profilePhoto?: string | null;
+  documentLogoKey?: string | null;
   role: "user" | "admin";
   gerarContratoAutomaticamente?: number | boolean | null;
 };
