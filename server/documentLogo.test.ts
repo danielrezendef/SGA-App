@@ -225,7 +225,7 @@ describe("logotipo: regressão de PDFs", () => {
           horario: "15:00",
           endereco: "Rua A",
           valorServico: 1500,
-          status: "pagamento",
+          status: "confirmado",
         },
         cobranca: {
           id: 2,

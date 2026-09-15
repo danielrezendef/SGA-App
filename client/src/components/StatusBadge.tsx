@@ -1,9 +1,8 @@
-type Status = "orcamento" | "confirmado" | "pagamento" | "concluido";
+type Status = "orcamento" | "confirmado" | "concluido";
 
 const STATUS_CONFIG: Record<Status, { label: string; className: string; accentClassName: string; fillClassName: string }> = {
   orcamento: { label: "Orçamento", className: "status-orcamento", accentClassName: "status-accent-orcamento", fillClassName: "status-fill-orcamento" },
   confirmado: { label: "Confirmado", className: "status-confirmado", accentClassName: "status-accent-confirmado", fillClassName: "status-fill-confirmado" },
-  pagamento: { label: "Pagamento", className: "status-pagamento", accentClassName: "status-accent-pagamento", fillClassName: "status-fill-pagamento" },
   concluido: { label: "Concluído", className: "status-concluido", accentClassName: "status-accent-concluido", fillClassName: "status-fill-concluido" },
 };
 

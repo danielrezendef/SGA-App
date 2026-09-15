@@ -139,10 +139,6 @@ logo: {
     backgroundColor: "#dcfce7",
     color: "#166534",
   },
-  statusPagamento: {
-    backgroundColor: "#fed7aa",
-    color: "#92400e",
-  },
   statusConcluido: {
     backgroundColor: "#d1fae5",
     color: "#065f46",
@@ -281,8 +277,6 @@ const getStatusColor = (status: string) => {
       return styles.statusOrcamento;
     case "confirmado":
       return styles.statusConfirmado;
-    case "pagamento":
-      return styles.statusPagamento;
     case "concluido":
       return styles.statusConcluido;
     default:
@@ -294,7 +288,6 @@ const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
     orcamento: "Orçamento",
     confirmado: "Confirmado",
-    pagamento: "Pagamento",
     concluido: "Concluído",
   };
   return labels[status] || status;

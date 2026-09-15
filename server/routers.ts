@@ -296,7 +296,7 @@ const agendamentosRouter = router({
   list: protectedProcedure
     .input(
       z.object({
-        status: z.enum(["orcamento", "confirmado", "pagamento", "concluido"]).optional(),
+        status: z.enum(["orcamento", "confirmado", "concluido"]).optional(),
         excluirConcluidos: z.boolean().optional(),
         descricao: z.string().optional(),
         dataInicio: z.string().optional(),
@@ -369,7 +369,7 @@ const agendamentosRouter = router({
         horario: z.string().optional(),
         enderecoCerimonia: z.string().optional(),
         valorServico: z.string().regex(/^\d+(?:\.\d{1,2})?$/, "Valor do serviço deve conter somente números").optional(),
-        status: z.enum(["orcamento", "confirmado", "pagamento", "concluido"]).optional(),
+        status: z.enum(["orcamento", "confirmado", "concluido"]).optional(),
         observacoes: z.string().optional(),
       })
     )
@@ -395,7 +395,7 @@ const agendamentosRouter = router({
     .input(
       z.object({
         id: z.number(),
-        status: z.enum(["orcamento", "confirmado", "pagamento", "concluido"]),
+        status: z.enum(["orcamento", "confirmado", "concluido"]),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -471,9 +471,7 @@ const cobrancasRouter = router({
       const existing = await getCobrancaByAgendamentoId(input.agendamentoId);
       if (existing) throw new TRPCError({ code: "CONFLICT", message: "Cobrança já cadastrada para este agendamento." });
 
-      const usuario = await getUserById(ctx.user.id);
-      const gerarContratoAutomaticamente = Boolean(usuario?.gerarContratoAutomaticamente);
-      const cobranca = await createCobranca(input as any, gerarContratoAutomaticamente ? "confirmado" : "pagamento");
+      const cobranca = await createCobranca(input as any, "confirmado");
 
       let googleCalendarSync: "synced" | "skipped" | "failed" = "skipped";
       try {

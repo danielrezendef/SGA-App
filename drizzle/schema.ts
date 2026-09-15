@@ -53,7 +53,6 @@ export const agendamentos = mysqlTable("agendamentos", {
     "orcamento",
     "confirmado",
     "cobranca",
-    "pagamento",
     "concluido",
   ])
     .default("orcamento")

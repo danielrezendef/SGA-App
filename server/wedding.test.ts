@@ -335,7 +335,7 @@ describe("agendamentos.updateStatus", () => {
       horario: "10:00:00",
       enderecoCerimonia: "Igreja",
       valorServico: "1000.00",
-      status: "pagamento",
+      status: "confirmado",
       observacoes: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -370,7 +370,7 @@ describe("agendamentos.updateStatus", () => {
       horario: "10:00:00",
       enderecoCerimonia: "Igreja",
       valorServico: "1000.00",
-      status: "pagamento",
+      status: "confirmado",
       observacoes: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -384,7 +384,7 @@ describe("agendamentos.updateStatus", () => {
 
 // ─── Cobranças tests ──────────────────────────────────────────────────────────
 describe("cobrancas.create", () => {
-  it("creates cobranca and updates status to pagamento when automatic contract is disabled", async () => {
+  it("creates cobranca and updates status to confirmado when automatic contract is disabled", async () => {
     vi.mocked(db.getAgendamentoById).mockResolvedValue({
       id: 1,
       userId: 1,
@@ -437,7 +437,7 @@ describe("cobrancas.create", () => {
     expect(result?.nomeResponsavel).toBe("João Silva");
     expect(db.createCobranca).toHaveBeenCalledWith(
       expect.objectContaining({ agendamentoId: 1, formaPagamento: "pix" }),
-      "pagamento"
+      "confirmado"
     );
     expect(db.createContrato).not.toHaveBeenCalled();
   });

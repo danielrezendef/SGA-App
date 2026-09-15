@@ -220,7 +220,7 @@ export async function removeGoogleCalendarConnection(userId: number) {
 // ─── Agendamentos ─────────────────────────────────────────────────────────────
 export type AgendamentoFilters = {
   userId?: number;
-  status?: "orcamento" | "confirmado" | "pagamento" | "concluido";
+  status?: "orcamento" | "confirmado" | "concluido";
   excluirConcluidos?: boolean;
   descricao?: string;
   dataInicio?: string;
@@ -354,7 +354,7 @@ export async function updateAgendamento(
     horario: string;
     enderecoCerimonia: string;
     valorServico: string;
-    status: "orcamento" | "confirmado" | "pagamento" | "concluido";
+    status: "orcamento" | "confirmado" | "concluido";
     observacoes: string;
   }>
 ) {
@@ -404,11 +404,11 @@ export async function getCobrancaByAgendamentoId(agendamentoId: number) {
   return result[0];
 }
 
-export async function createCobranca(data: any, nextStatus: "confirmado" | "pagamento" = "confirmado") {
+export async function createCobranca(data: any, nextStatus: "confirmado" = "confirmado") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(cobrancas).values(data);
-  // Update agendamento status to confirmado
+  // Atualiza o agendamento para confirmado ao cadastrar a cobrança.
   await db
     .update(agendamentos)
     .set({ status: nextStatus })
@@ -517,7 +517,7 @@ export async function getDashboardStats(userId?: number) {
       ),
   ]);
 
-  // A receber: agendamentos confirmados ou aguardando pagamento.
+  // A receber: agendamentos confirmados.
   // Orçamentos e eventos já concluídos não entram neste total.
   const valorAReceber = await db
     .select({ total: sql<string>`COALESCE(SUM(${agendamentos.valorServico}), 0)` })
@@ -525,7 +525,7 @@ export async function getDashboardStats(userId?: number) {
     .where(
       and(
         userCondition,
-        sql`${agendamentos.status} IN ('confirmado', 'pagamento')`
+        sql`${agendamentos.status} = 'confirmado'`
       )
     );
 

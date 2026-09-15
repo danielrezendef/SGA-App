@@ -58,7 +58,7 @@ const FORMA_PAGAMENTO_LABELS: Record<string, string> = {
   boleto: "Boleto",
 };
 
-const STATUS_VALUES = ["orcamento", "confirmado", "pagamento", "concluido"] as const;
+const STATUS_VALUES = ["orcamento", "confirmado", "concluido"] as const;
 type AgendamentoStatus = (typeof STATUS_VALUES)[number];
 
 function isAgendamentoStatus(status: string): status is AgendamentoStatus {
@@ -235,9 +235,9 @@ export default function AgendamentoDetalhe() {
       baixarArquivo(reciboBlob, `Recibo ${descricaoArquivo}.pdf`);
       toast.success("Contrato e recibo gerados com sucesso!");
       
-      // Atualizar status para "pagamento" quando emitir PDF, sem rebaixar agendamentos já concluídos.
-      if (data.status !== "pagamento" && data.status !== "concluido") {
-        updateStatusMutation.mutate({ id, status: "pagamento" });
+      // Mantém o agendamento confirmado ao emitir os documentos, sem rebaixar agendamentos concluídos.
+      if (data.status !== "confirmado" && data.status !== "concluido") {
+        updateStatusMutation.mutate({ id, status: "confirmado" });
       }
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -422,7 +422,6 @@ export default function AgendamentoDetalhe() {
                   <SelectContent>
                     <SelectItem value="orcamento">Orçamento</SelectItem>
                     <SelectItem value="confirmado">Confirmado</SelectItem>
-                    <SelectItem value="pagamento">Pagamento</SelectItem>
                     <SelectItem value="concluido">Concluído</SelectItem>
                   </SelectContent>
                 </Select>
@@ -453,11 +452,10 @@ export default function AgendamentoDetalhe() {
                 {[
                   { status: "orcamento", label: "Orçamento" },
                   { status: "confirmado", label: "Confirmado" },
-                  { status: "pagamento", label: "Pagamento" },
                   { status: "concluido", label: "Concluído" },
                 ].map((step, idx) => {
                   const isActive = data.status === step.status;
-                  const statusOrder = ["orcamento", "confirmado", "pagamento", "concluido"];
+                  const statusOrder = ["orcamento", "confirmado", "concluido"];
                   const currentIdx = statusOrder.indexOf(data.status);
                   const stepIdx = statusOrder.indexOf(step.status);
                   const isDone = stepIdx < currentIdx;
