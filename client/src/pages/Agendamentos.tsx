@@ -37,7 +37,7 @@ import { formatDateSafe } from "@shared/dateUtils";
 import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
 import AgendamentoModal from "@/components/AgendamentoModal";
 import { getRepertorioButtonClass } from "@/lib/repertorioStatus";
-import { writeAgendaReport } from "@/lib/agendaReport";
+import { useDocumentLogo } from "@/hooks/useDocumentLogo";
 
 function formatCurrency(value: string | number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
@@ -46,6 +46,7 @@ function formatCurrency(value: string | number) {
 export default function Agendamentos() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
+  const { getLogo } = useDocumentLogo();
 
   // Filters
   const [search, setSearch] = useState("");
@@ -102,7 +103,7 @@ export default function Agendamentos() {
       return;
     }
 
-    reportWindow.document.write("<title>Preparando relatório...</title><p style=\"font-family:Arial,sans-serif;padding:24px\">Preparando programação...</p>");
+    reportWindow.document.write("<title>Preparando agenda...</title><p style=\"font-family:Arial,sans-serif;padding:24px\">Preparando agenda...</p>");
     setIsGeneratingReport(true);
     try {
       const reportInput = {
@@ -121,11 +122,19 @@ export default function Agendamentos() {
           utils.agendamentos.list.fetch({ ...reportInput, page: index + 2 })
         )
       );
-      writeAgendaReport(
-        reportWindow,
-        [firstPage, ...remainingPages].flatMap(pageResult => pageResult.items),
-        { descricao: reportInput.descricao, dataInicio: reportInput.dataInicio, dataFim: reportInput.dataFim, statusFilter }
-      );
+      const [{ pdf }, { PDFAgenda }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/PDFAgenda"),
+      ]);
+      const blob = await pdf(
+        <PDFAgenda
+          appointments={[firstPage, ...remainingPages].flatMap(pageResult => pageResult.items)}
+          logo={await getLogo()}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      reportWindow.location.replace(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       reportWindow.close();
       console.error("Erro ao gerar relatório de agendamentos:", error);
