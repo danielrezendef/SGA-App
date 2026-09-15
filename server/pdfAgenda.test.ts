@@ -24,7 +24,7 @@ describe("PDFAgenda", () => {
       dataEvento: `2026-09-${String((index % 12) + 1).padStart(2, "0")}`,
       horario: "16:00:00",
       enderecoCerimonia: "Local com endereço longo para validar quebras de linha sem separar o agendamento.",
-      observacoes: index % 2 ? "Observação detalhada do evento, preservada no relatório." : null,
+      observacoes: index % 2 ? "Observação que não deve ser exibida no PDF." : null,
       status: index % 3 ? "confirmado" : "orcamento",
     }));
     const document = PDFAgenda({
@@ -50,5 +50,13 @@ describe("PDFAgenda", () => {
     };
     visit(layout);
     expect(eventNodes).toHaveLength(appointments.length);
+
+    const values: string[] = [];
+    const collectText = (node: any) => {
+      if (typeof node.value === "string") values.push(node.value);
+      node.children?.forEach(collectText);
+    };
+    collectText(layout);
+    expect(values.join(" ")).not.toContain("Observação que não deve ser exibida no PDF.");
   });
 });

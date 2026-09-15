@@ -203,7 +203,6 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function AgendaEvent({ appointment }: { appointment: AgendaAppointment }) {
-  const note = appointment.observacoes?.trim();
   return (
     <View style={styles.event} wrap={false}>
       <Text style={styles.time}>{appointment.horario?.slice(0, 5)}</Text>
@@ -214,9 +213,6 @@ function AgendaEvent({ appointment }: { appointment: AgendaAppointment }) {
         </View>
         {appointment.enderecoCerimonia && (
           <Detail label="Local ·" value={appointment.enderecoCerimonia} />
-        )}
-        {note && (
-          <Detail label="Observação" value={note} />
         )}
       </View>
     </View>
