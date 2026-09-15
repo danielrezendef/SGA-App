@@ -29,35 +29,40 @@ const COLORS = {
 
 const A4_PAGE_HEIGHT = 841.89;
 const A4_PAGE_SIZE = { width: 595.28, height: A4_PAGE_HEIGHT } as const;
-const AGENDA_CONTENT_HEIGHT = A4_PAGE_HEIGHT - 81 - 48;
+// Keep a small layout reserve so the renderer never carries a date group into
+// the following explicit page, even with font-metric differences at runtime.
+const AGENDA_CONTENT_HEIGHT = A4_PAGE_HEIGHT - 48 - 24;
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 80,
+    paddingTop: 8,
     paddingRight: 40,
-    paddingBottom: 48,
+    paddingBottom: 24,
     paddingLeft: 40,
     fontFamily: "Helvetica",
     fontSize: 8,
     color: COLORS.text,
     backgroundColor: "#FFFFFF",
   },
+  continuationPage: {
+    paddingTop: 18,
+  },
   header: {
     position: "relative",
-    height: 45,
-    marginBottom: 10,
+    height: 36,
+    marginBottom: 4,
   },
   logo: {
     position: "absolute",
     left: 0,
     top: 0,
-    width: 72,
-    height: 34,
+    width: 68,
+    height: 30,
     objectFit: "contain",
   },
   title: {
     width: "100%",
-    paddingTop: 7,
+    paddingTop: 4,
     textAlign: "center",
     fontSize: 21,
     fontWeight: "bold",
@@ -126,8 +131,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 40,
     right: 40,
-    bottom: 20,
-    paddingTop: 7,
+    bottom: 7,
+    paddingTop: 4,
     borderTopWidth: 0.6,
     borderTopColor: COLORS.line,
     flexDirection: "row",
@@ -136,9 +141,9 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
   },
   measurePage: {
-    paddingTop: 81,
+    paddingTop: 48,
     paddingRight: 40,
-    paddingBottom: 48,
+    paddingBottom: 24,
     paddingLeft: 40,
     fontFamily: "Helvetica",
     fontSize: 8,
@@ -361,13 +366,18 @@ export function PDFAgenda({
         key={pageIndex}
         size={A4_PAGE_SIZE}
         orientation="portrait"
-        style={{ ...styles.page, height: A4_PAGE_HEIGHT }}
+        style={{
+          ...(pageIndex === 0 ? styles.page : { ...styles.page, ...styles.continuationPage }),
+          height: A4_PAGE_HEIGHT,
+        }}
         wrap
       >
-        <View style={styles.header} fixed>
-          <Image style={styles.logo} src={resolveDocumentLogo(logo)} />
-          <Text style={styles.title}>AGENDA</Text>
-        </View>
+        {pageIndex === 0 && (
+          <View style={styles.header}>
+            <Image style={styles.logo} src={resolveDocumentLogo(logo)} />
+            <Text style={styles.title}>AGENDA</Text>
+          </View>
+        )}
 
         {sheet.map(index => (
           <AgendaDay key={eventDateKey(groups[index][0].dataEvento)} appointments={groups[index]} />
