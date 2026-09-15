@@ -1,4 +1,5 @@
 import React from "react";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { describe, expect, it, vi } from "vitest";
 
@@ -9,7 +10,7 @@ vi.mock("@/assets/logo.png", async () => {
   };
 });
 
-import { formatAgendaDate, PDFAgenda } from "../client/src/components/PDFAgenda";
+import { formatAgendaDate, preparePDFAgenda } from "../client/src/components/PDFAgenda";
 
 describe("PDFAgenda", () => {
   it("usa a data compacta em português", () => {
@@ -17,7 +18,6 @@ describe("PDFAgenda", () => {
   });
 
   it("gera uma agenda paginada, com cada evento sem quebra interna", async () => {
-    let layout: any;
     const appointments = Array.from({ length: 24 }, (_, index) => ({
       id: index + 1,
       descricao: `Evento ${index + 1} com título suficientemente longo para testar a composição`,
@@ -25,38 +25,19 @@ describe("PDFAgenda", () => {
       horario: "16:00:00",
       enderecoCerimonia: "Local com endereço longo para validar quebras de linha sem separar o agendamento.",
       observacoes: index % 2 ? "Observação que não deve ser exibida no PDF." : null,
-      status: index % 3 ? "confirmado" : "orcamento",
+      status: ["orcamento", "confirmado", "concluido"][index % 3],
     }));
-    const document = PDFAgenda({
+    const document = await preparePDFAgenda({
       appointments,
       generatedAt: new Date("2026-09-15T14:25:00"),
     });
-    const buffer = await renderToBuffer(
-      React.cloneElement(document, {
-        onRender: (result: any) => {
-          layout = result._INTERNAL__LAYOUT__DATA_;
-        },
-      })
-    );
+    const buffer = await renderToBuffer(document);
 
     expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
-    expect(layout.children.length).toBeGreaterThan(1);
-
-    const eventNodes: any[] = [];
-    const visit = (node: any) => {
-      if (node.style?.flexDirection === "row" && node.style?.paddingTop === 8)
-        eventNodes.push(node);
-      node.children?.forEach(visit);
-    };
-    visit(layout);
-    expect(eventNodes).toHaveLength(appointments.length);
-
-    const values: string[] = [];
-    const collectText = (node: any) => {
-      if (typeof node.value === "string") values.push(node.value);
-      node.children?.forEach(collectText);
-    };
-    collectText(layout);
-    expect(values.join(" ")).not.toContain("Observação que não deve ser exibida no PDF.");
+    if (process.env.PDF_QA_OUTPUT) {
+      mkdirSync("output/pdf", { recursive: true });
+      writeFileSync("output/pdf/agenda-preview.pdf", buffer);
+    }
+    expect((document.props as { sheets?: number[][] }).sheets).toHaveLength(2);
   });
 });

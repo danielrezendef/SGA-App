@@ -27,9 +27,13 @@ const COLORS = {
   line: "#D9CBAE",
 } as const;
 
+const A4_PAGE_HEIGHT = 841.89;
+const A4_PAGE_SIZE = { width: 595.28, height: A4_PAGE_HEIGHT } as const;
+const AGENDA_CONTENT_HEIGHT = A4_PAGE_HEIGHT - 81 - 48;
+
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 26,
+    paddingTop: 80,
     paddingRight: 40,
     paddingBottom: 48,
     paddingLeft: 40,
@@ -42,8 +46,6 @@ const styles = StyleSheet.create({
     position: "relative",
     height: 45,
     marginBottom: 10,
-    borderBottomWidth: 0.75,
-    borderBottomColor: COLORS.line,
   },
   logo: {
     position: "absolute",
@@ -75,6 +77,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingTop: 8,
     paddingBottom: 10,
+  },
+  completedEvent: {
+    opacity: 0.58,
   },
   time: {
     width: 54,
@@ -130,6 +135,16 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: COLORS.secondary,
   },
+  measurePage: {
+    paddingTop: 81,
+    paddingRight: 40,
+    paddingBottom: 48,
+    paddingLeft: 40,
+    fontFamily: "Helvetica",
+    fontSize: 8,
+    color: COLORS.text,
+    backgroundColor: "#FFFFFF",
+  },
 });
 
 function localDate(value: string | Date) {
@@ -173,13 +188,17 @@ function displayStatus(status: string) {
 
 function statusStyle(status: string) {
   switch (status) {
+    // RGB equivalents of the shared .status-* palette in index.css.
+    case "orcamento":
+      return { backgroundColor: "#B9EFFF", color: "#00556A", borderColor: "#6CCDEA" };
     case "confirmado":
+      return { backgroundColor: "#CDF0CD", color: "#005A22", borderColor: "#7BC27E" };
     case "concluido":
-      return { backgroundColor: "#E8F3EC", color: "#3B6B4D" };
+      return { backgroundColor: "#EEE6E4", color: "#372A28", borderColor: "#CAB9B6" };
     case "cancelado":
-      return { backgroundColor: "#FCE9E8", color: "#963C36" };
+      return { backgroundColor: "#FCE9E8", color: "#963C36", borderColor: "#F0BEBB" };
     default:
-      return { backgroundColor: "#F6EEDC", color: COLORS.goldDark };
+      return { backgroundColor: "#F6EEDC", color: COLORS.goldDark, borderColor: "#E3CF9E" };
   }
 }
 
@@ -194,7 +213,11 @@ function Detail({ label, value }: { label: string; value: string }) {
 function StatusBadge({ status }: { status: string }) {
   const colors = statusStyle(status);
   return (
-    <View style={[styles.statusBadge, { backgroundColor: colors.backgroundColor }]}>
+    <View style={[styles.statusBadge, {
+      backgroundColor: colors.backgroundColor,
+      borderWidth: 0.7,
+      borderColor: colors.borderColor,
+    }]}>
       <Text style={[styles.statusText, { color: colors.color }]}>
         {displayStatus(status)}
       </Text>
@@ -204,7 +227,9 @@ function StatusBadge({ status }: { status: string }) {
 
 function AgendaEvent({ appointment }: { appointment: AgendaAppointment }) {
   return (
-    <View style={styles.event} wrap={false}>
+    <View
+      style={appointment.status === "concluido" ? [styles.event, styles.completedEvent] : styles.event}
+    >
       <Text style={styles.time}>{appointment.horario?.slice(0, 5)}</Text>
       <View style={styles.eventBody}>
         <View style={styles.eventHeading}>
@@ -223,18 +248,86 @@ function AgendaDay({ appointments }: { appointments: AgendaAppointment[] }) {
   const [first, ...remaining] = appointments;
   if (!first) return null;
   return (
-    <>
-      <View wrap={false}>
-        <View style={styles.dayHeading}>
-          <Text style={styles.dayLabel}>{formatAgendaDate(first.dataEvento)}</Text>
-        </View>
-        <AgendaEvent appointment={first} />
+    <View>
+      <View style={styles.dayHeading}>
+        <Text style={styles.dayLabel}>{formatAgendaDate(first.dataEvento)}</Text>
       </View>
+      <AgendaEvent appointment={first} />
       {remaining.map(appointment => (
         <AgendaEvent key={appointment.id} appointment={appointment} />
       ))}
-    </>
+    </View>
   );
+}
+
+function groupAppointments(appointments: AgendaAppointment[]) {
+  const groups = new Map<string, AgendaAppointment[]>();
+  for (const appointment of appointments) {
+    const key = eventDateKey(appointment.dataEvento);
+    groups.set(key, [...(groups.get(key) ?? []), appointment]);
+  }
+  return Array.from(groups.values());
+}
+
+export function distributeAgenda(heights: number[]) {
+  const sheets: number[][] = [[]];
+  let usedHeight = 0;
+  for (let index = 0; index < heights.length; index++) {
+    const height = heights[index];
+    if (sheets.at(-1)!.length && usedHeight + height > AGENDA_CONTENT_HEIGHT) {
+      sheets.push([]);
+      usedHeight = 0;
+    }
+    sheets.at(-1)!.push(index);
+    usedHeight += height;
+  }
+  return sheets;
+}
+
+type LayoutNode = {
+  type?: string;
+  box?: { height: number; marginTop?: number; marginBottom?: number };
+  children?: LayoutNode[];
+};
+
+function findGroupsContainer(node: LayoutNode, count: number): LayoutNode | undefined {
+  if (node.type === "VIEW" && node.children?.length === count) return node;
+  return node.children?.map(child => findGroupsContainer(child, count)).find(Boolean);
+}
+
+export async function preparePDFAgenda(props: {
+  appointments: AgendaAppointment[];
+  logo?: string | null;
+  generatedAt?: Date;
+}) {
+  const groups = groupAppointments(props.appointments);
+  if (!groups.length) return <PDFAgenda {...props} sheets={[[]]} />;
+
+  let heights: number[] | undefined;
+  const { pdf } = await import("@react-pdf/renderer");
+  await pdf(
+    <Document
+      onRender={result => {
+        const layout = (result as { _INTERNAL__LAYOUT__DATA_?: LayoutNode })
+          ._INTERNAL__LAYOUT__DATA_;
+        const container = layout && findGroupsContainer(layout, groups.length);
+        heights = container?.children?.map(
+          node =>
+            (node.box?.height ?? 0) +
+            (node.box?.marginTop ?? 0) +
+            (node.box?.marginBottom ?? 0)
+        );
+      }}
+    >
+      <Page size={A4_PAGE_SIZE} style={{ ...styles.measurePage, height: A4_PAGE_HEIGHT }} wrap={false}>
+        <View>{groups.map(group => <AgendaDay key={eventDateKey(group[0].dataEvento)} appointments={group} />)}</View>
+      </Page>
+    </Document>
+  ).toBlob();
+
+  if (!heights || heights.length !== groups.length || heights.some(height => !Number.isFinite(height) || height <= 0))
+    throw new Error("Não foi possível medir os agendamentos para paginação.");
+  return <PDFAgenda {...props} sheets={distributeAgenda(heights)} />;
 }
 
 function formatGeneratedAt(value: Date) {
@@ -251,28 +344,33 @@ export function PDFAgenda({
   appointments,
   logo,
   generatedAt = new Date(),
+  sheets,
 }: {
   appointments: AgendaAppointment[];
   logo?: string | null;
   generatedAt?: Date;
+  sheets?: number[][];
 }) {
-  const groups = new Map<string, AgendaAppointment[]>();
-  for (const appointment of appointments) {
-    const key = eventDateKey(appointment.dataEvento);
-    groups.set(key, [...(groups.get(key) ?? []), appointment]);
-  }
+  const groups = groupAppointments(appointments);
   const generatedLabel = formatGeneratedAt(generatedAt);
 
   return (
     <Document title="Agenda" author="SGA App">
-      <Page size="A4" style={styles.page} wrap>
+      {(sheets ?? [groups.map((_, index) => index)]).map((sheet, pageIndex) => (
+      <Page
+        key={pageIndex}
+        size={A4_PAGE_SIZE}
+        orientation="portrait"
+        style={{ ...styles.page, height: A4_PAGE_HEIGHT }}
+        wrap
+      >
         <View style={styles.header} fixed>
           <Image style={styles.logo} src={resolveDocumentLogo(logo)} />
           <Text style={styles.title}>AGENDA</Text>
         </View>
 
-        {Array.from(groups.values()).map(day => (
-          <AgendaDay key={eventDateKey(day[0].dataEvento)} appointments={day} />
+        {sheet.map(index => (
+          <AgendaDay key={eventDateKey(groups[index][0].dataEvento)} appointments={groups[index]} />
         ))}
         {!appointments.length && (
           <Text style={styles.empty}>Nenhum agendamento foi encontrado para os filtros selecionados.</Text>
@@ -283,6 +381,7 @@ export function PDFAgenda({
           <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
         </View>
       </Page>
+      ))}
     </Document>
   );
 }

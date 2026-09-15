@@ -122,16 +122,15 @@ export default function Agendamentos() {
           utils.agendamentos.list.fetch({ ...reportInput, page: index + 2 })
         )
       );
-      const [{ pdf }, { PDFAgenda }] = await Promise.all([
+      const [{ pdf }, { preparePDFAgenda }] = await Promise.all([
         import("@react-pdf/renderer"),
         import("@/components/PDFAgenda"),
       ]);
-      const blob = await pdf(
-        <PDFAgenda
-          appointments={[firstPage, ...remainingPages].flatMap(pageResult => pageResult.items)}
-          logo={await getLogo()}
-        />
-      ).toBlob();
+      const document = await preparePDFAgenda({
+        appointments: [firstPage, ...remainingPages].flatMap(pageResult => pageResult.items),
+        logo: await getLogo(),
+      });
+      const blob = await pdf(document).toBlob();
       const url = URL.createObjectURL(blob);
       reportWindow.location.replace(url);
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
