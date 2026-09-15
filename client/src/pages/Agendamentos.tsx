@@ -31,11 +31,13 @@ import {
   CheckSquare,
   X,
   ListMusic,
+  Printer,
 } from "lucide-react";
 import { formatDateSafe } from "@shared/dateUtils";
 import StatusBadge, { getStatusAccentClass } from "@/components/StatusBadge";
 import AgendamentoModal from "@/components/AgendamentoModal";
 import { getRepertorioButtonClass } from "@/lib/repertorioStatus";
+import { writeAgendaReport } from "@/lib/agendaReport";
 
 function formatCurrency(value: string | number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
@@ -57,6 +59,7 @@ export default function Agendamentos() {
   const [showCreate, setShowCreate] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const queryInput = useMemo(() => ({
     status: statusFilter !== "all" && statusFilter !== "em_andamento" ? statusFilter as any : undefined,
@@ -92,6 +95,46 @@ export default function Agendamentos() {
 
   const hasFilters = search || statusFilter !== "em_andamento" || dataInicio || dataFim;
 
+  const handleGenerateReport = async () => {
+    const reportWindow = window.open("", "_blank");
+    if (!reportWindow) {
+      toast.error("Não foi possível abrir a impressão. Permita pop-ups para este site e tente novamente.");
+      return;
+    }
+
+    reportWindow.document.write("<title>Preparando relatório...</title><p style=\"font-family:Arial,sans-serif;padding:24px\">Preparando programação...</p>");
+    setIsGeneratingReport(true);
+    try {
+      const reportInput = {
+        status: statusFilter !== "all" && statusFilter !== "em_andamento" ? statusFilter as "orcamento" | "confirmado" | "concluido" : undefined,
+        excluirConcluidos: statusFilter === "em_andamento" || undefined,
+        descricao: search || undefined,
+        dataInicio: dataInicio || undefined,
+        dataFim: dataFim || undefined,
+        page: 1,
+        pageSize: 50,
+      };
+      const firstPage = await utils.agendamentos.list.fetch(reportInput);
+      const pageCount = Math.ceil(firstPage.total / reportInput.pageSize);
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) =>
+          utils.agendamentos.list.fetch({ ...reportInput, page: index + 2 })
+        )
+      );
+      writeAgendaReport(
+        reportWindow,
+        [firstPage, ...remainingPages].flatMap(pageResult => pageResult.items),
+        { descricao: reportInput.descricao, dataInicio: reportInput.dataInicio, dataFim: reportInput.dataFim, statusFilter }
+      );
+    } catch (error) {
+      reportWindow.close();
+      console.error("Erro ao gerar relatório de agendamentos:", error);
+      toast.error("Não foi possível gerar o relatório. Tente novamente.");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
     <div className="space-y-5 page-enter">
       {/* Header */}
@@ -102,11 +145,17 @@ export default function Agendamentos() {
             {data?.total ?? 0} {(data?.total ?? 0) === 1 ? "registro encontrado" : "registros encontrados"}
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Incluir Agendamento</span>
-          <span className="sm:hidden">Novo</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleGenerateReport} disabled={isGeneratingReport || isLoading} className="gap-2 border-primary/35 bg-primary/10 hover:bg-primary/20">
+            <Printer className="w-4 h-4" />
+            <span className="hidden sm:inline">Relatório</span>
+          </Button>
+          <Button onClick={() => setShowCreate(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Incluir Agendamento</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
